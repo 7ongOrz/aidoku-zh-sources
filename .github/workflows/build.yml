@@ -1,0 +1,61 @@
+name: Build Sources
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install AS source dependencies
+        run: |
+          for src in ./src/as/*/; do
+            [ -f "$src/res/source.json" ] || continue
+            grep '"deprecated"' "$src/res/source.json" | grep -q 'true' && continue
+            [ -f "$src/package.json" ] && (cd "$src" && npm ci)
+          done
+
+      - name: Setup Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install aidoku-cli
+        run: cargo install --git https://github.com/Aidoku/aidoku-rs aidoku-cli
+
+      - name: Build all sources
+        run: |
+          chmod +x src/rust/*/build.sh
+          bash -O globstar ./build.sh
+
+      - name: Commit and push compiled sources
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add public/
+          git diff --staged --quiet || git commit -m "build: update compiled sources"
+          git push
