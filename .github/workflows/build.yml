@@ -29,8 +29,8 @@ jobs:
             [ -f "$src/package.json" ] && (cd "$src" && npm ci)
           done
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
         with:
           targets: wasm32-unknown-unknown
 
