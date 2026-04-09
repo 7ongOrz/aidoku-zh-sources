@@ -16,4 +16,5 @@ strip = true
 lto = true
 
 [dependencies]
-aidoku = { git = "https://github.com/Aidoku/aidoku-rs", features = ["helpers"] }
+aidoku = { git = "https://github.com/Aidoku/aidoku-rs", features = ["helpers", "json"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }

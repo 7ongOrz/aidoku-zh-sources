@@ -1,255 +1,240 @@
 #![no_std]
-extern crate alloc;
-
 use aidoku::{
-	error::Result,
-	helpers::{substring::Substring, uri::encode_uri},
+	alloc::{String, Vec},
+	helpers::uri::encode_uri,
+	imports::net::Request,
 	prelude::*,
-	std::{
-		net::{HttpMethod, Request},
-		String, Vec,
-	},
-	Chapter, Filter, FilterType, Manga, MangaContentRating, MangaPageResult, MangaStatus,
-	MangaViewer, Page,
+	Chapter, ContentRating, FilterValue, Manga, MangaPageResult, MangaStatus, Page, PageContent,
+	Result, Source, Viewer,
 };
-use alloc::string::ToString;
+use aidoku::alloc::string::ToString;
+use serde::Deserialize;
 
 const WWW_URL: &str = "https://se8.us/index.php";
 const UA: &str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
 
-const FILTER_TAG: [&str; 22] = [
-	"", "61", "63", "62", "64", "11", "15", "17", "29", "31", "67", "68", "69", "75", "78", "84",
-	"86", "87", "91", "98", "106", "114",
-];
-const FILTER_FINISH: [&str; 3] = ["", "1", "2"];
 const FILTER_ORDER: [&str; 2] = ["hits", "addtime"];
 
-#[get_manga_list]
-fn get_manga_list(filters: Vec<Filter>, page: i32) -> Result<MangaPageResult> {
-	let mut query = String::new();
-	let mut tag = String::new();
-	let mut finish = String::new();
-	let mut order = String::from("hits");
+#[derive(Deserialize)]
+struct ChapterResponse {
+	data: Vec<ChapterData>,
+}
 
-	for filter in filters {
-		match filter.kind {
-			FilterType::Title => {
-				query = filter.value.as_string()?.read();
-			}
-			FilterType::Select => {
-				let index = filter.value.as_int()? as usize;
-				match filter.name.as_str() {
-					"标签" => {
-						tag = FILTER_TAG[index].to_string();
+#[derive(Deserialize)]
+struct ChapterData {
+	id: i64,
+	name: String,
+	link: String,
+}
+
+struct Se8Source;
+
+impl Source for Se8Source {
+	fn new() -> Self {
+		Self
+	}
+
+	fn get_search_manga_list(
+		&self,
+		query: Option<String>,
+		page: i32,
+		filters: Vec<FilterValue>,
+	) -> Result<MangaPageResult> {
+		let mut tag = String::new();
+		let mut finish = String::new();
+		let mut order = String::from("hits");
+
+		for filter in filters {
+			match filter {
+				FilterValue::Select { id, value } => match id.as_str() {
+					"tag" => tag = value,
+					"finish" => finish = value,
+					_ => {}
+				},
+				FilterValue::Sort { id, index, .. } => {
+					if id == "order" {
+						if let Some(s) = FILTER_ORDER.get(index as usize) {
+							order = s.to_string();
+						}
 					}
-					"进度" => {
-						finish = FILTER_FINISH[index].to_string();
-					}
-					_ => continue,
 				}
+				_ => {}
 			}
-			FilterType::Sort => {
-				let value = match filter.value.as_object() {
-					Ok(value) => value,
-					Err(_) => continue,
-				};
-				let index = value.get("index").as_int()? as usize;
-				order = FILTER_ORDER[index].to_string();
-			}
-			_ => continue,
-		}
-	}
-
-	let url = if query.is_empty() {
-		let mut url = format!("{}/category", WWW_URL);
-
-		if !tag.is_empty() {
-			url.push_str(&format!("/tags/{}", tag));
 		}
 
-		if !finish.is_empty() {
-			url.push_str(&format!("/finish/{}", finish));
-		}
-
-		format!("{}/order/{}/page/{}", url, order, page)
-	} else {
-		format!("{}/search/{}/{}", WWW_URL, encode_uri(query.clone()), page)
-	};
-	let html = Request::new(url, HttpMethod::Get)
-		.header("User-Agent", UA)
-		.html()?;
-	let has_more = true;
-	let mut mangas: Vec<Manga> = Vec::new();
-
-	for item in html.select(".comic-item,.comic-list-item").array() {
-		let item = match item.as_node() {
-			Ok(node) => node,
-			Err(_) => continue,
-		};
-		let id = item
-			.select("a")
-			.attr("href")
-			.read()
-			.split("/")
-			.map(|a| a.to_string())
-			.collect::<Vec<String>>()
-			.pop()
-			.unwrap();
-		let cover = if query.is_empty() {
-			item.select("a>img").attr("data-src").read()
+		let is_search = query.is_some();
+		let url = if let Some(query) = query {
+			format!("{}/search/{}/{}", WWW_URL, encode_uri(query), page)
 		} else {
-			item.select("a>img").attr("src").read()
+			let mut url = format!("{}/category", WWW_URL);
+			if !tag.is_empty() {
+				url.push_str(&format!("/tags/{}", tag));
+			}
+			if !finish.is_empty() {
+				url.push_str(&format!("/finish/{}", finish));
+			}
+			format!("{}/order/{}/page/{}", url, order, page)
 		};
-		let title = item.select("div>.comic-name").text().read();
-		mangas.push(Manga {
-			id,
-			cover,
-			title,
-			..Default::default()
-		});
-	}
 
-	Ok(MangaPageResult {
-		manga: mangas,
-		has_more,
-	})
-}
+		let html = Request::get(&url)?.header("User-Agent", UA).html()?;
+		let mut entries: Vec<Manga> = Vec::new();
 
-#[get_manga_details]
-fn get_manga_details(id: String) -> Result<Manga> {
-	let url = format!("{}/comic/{}", WWW_URL, id.clone());
-	let html = Request::new(url.clone(), HttpMethod::Get)
-		.header("User-Agent", UA)
-		.html()?;
-	let id = html
-		.html()
-		.read()
-		.substring_after("comic.show(")
-		.unwrap()
-		.substring_before(");")
-		.unwrap()
-		.to_string();
-	let cover = html
-		.select(".comic-info-box>.box-back")
-		.attr("style")
-		.read()
-		.replace("background-image: url('", "")
-		.replace("')", "");
-	let title = html.select(".comic-info-box>.comic-info>h1").text().read();
-	let author = html
-		.select(".comic-info-box>.comic-info>.au-name")
-		.text()
-		.read()
-		.replace("作者：", "")
-		.replace("&amp", "&")
-		.split("&")
-		.filter(|a| !a.trim().is_empty())
-		.map(|a| a.to_string())
-		.collect::<Vec<String>>()
-		.join(", ");
-	let artist = String::new();
-	let description = html
-		.select(".comic-intro")
-		.text()
-		.read()
-		.trim()
-		.replace("&hellip", "…");
-	let categories = html
-		.select(".comic-info-box>.comic-info>.comic-tags")
-		.html()
-		.read()
-		.trim()
-		.substring_after("</span>")
-		.unwrap()
-		.trim()
-		.split(" ")
-		.filter(|a| !a.trim().is_empty())
-		.map(|a| a.to_string())
-		.collect::<Vec<String>>();
-	let status = MangaStatus::Ongoing;
-	let nsfw = MangaContentRating::Nsfw;
-	let viewer = MangaViewer::Scroll;
+		if let Some(items) = html.select(".comic-item,.comic-list-item") {
+			for item in items {
+				let key = item
+					.select_first("a")
+					.and_then(|e| e.attr("href"))
+					.unwrap_or_default()
+					.split("/")
+					.map(|a| a.to_string())
+					.collect::<Vec<String>>()
+					.pop()
+					.unwrap_or_default();
+				let cover = if is_search {
+					item.select_first("a>img")
+						.and_then(|e| e.attr("src"))
+				} else {
+					item.select_first("a>img")
+						.and_then(|e| e.attr("data-src"))
+				};
+				let title = item
+					.select_first("div>.comic-name")
+					.and_then(|e| e.text())
+					.unwrap_or_default();
+				entries.push(Manga {
+					key,
+					cover,
+					title,
+					..Default::default()
+				});
+			}
+		}
 
-	Ok(Manga {
-		id,
-		cover,
-		title,
-		author,
-		artist,
-		description,
-		url,
-		categories,
-		status,
-		nsfw,
-		viewer,
-	})
-}
-
-#[get_chapter_list]
-fn get_chapter_list(id: String) -> Result<Vec<Chapter>> {
-	let url = format!("{}/api/comic/chapter?mid={}", WWW_URL, id.clone());
-	let json = Request::new(url.clone(), HttpMethod::Get)
-		.header("User-Agent", UA)
-		.json()?;
-	let data = json.as_object()?;
-	let list = data.get("data").as_array()?;
-	let mut chapters: Vec<Chapter> = Vec::new();
-
-	for (index, item) in list.enumerate() {
-		let item = match item.as_object() {
-			Ok(item) => item,
-			Err(_) => continue,
-		};
-		let id = item.get("id").as_string()?.read();
-		let title = item
-			.get("name")
-			.as_string()?
-			.read()
-			.trim()
-			.replace("&lt;", "<")
-			.replace("&gt;", ">")
-			.replace("&#40;", "(")
-			.replace("&#41;", ")")
-			.replace("&ldquo;", "“")
-			.replace("&rdquo;", "”")
-			.replace("&hellip;", "…")
-			.replace("&hearts;", "♥");
-		let chapter = (index + 1) as f32;
-		let url = item.get("link").as_string()?.read();
-		chapters.push(Chapter {
-			id,
-			title,
-			chapter,
-			url,
-			..Default::default()
-		});
-	}
-	chapters.reverse();
-
-	Ok(chapters)
-}
-
-#[get_page_list]
-fn get_page_list(_: String, chapter_id: String) -> Result<Vec<Page>> {
-	let url = format!("{}/chapter/{}", WWW_URL, chapter_id.clone());
-	let html = Request::new(url.clone(), HttpMethod::Get)
-		.header("User-Agent", UA)
-		.html()?;
-	let mut pages: Vec<Page> = Vec::new();
-
-	for (index, item) in html.select(".comic-page>img").array().enumerate() {
-		let item = match item.as_node() {
-			Ok(node) => node,
-			Err(_) => continue,
-		};
-		let index = index as i32;
-		let url = item.attr("src").read().trim().to_string();
-		pages.push(Page {
-			index,
-			url,
-			..Default::default()
+		Ok(MangaPageResult {
+			has_next_page: !entries.is_empty(),
+			entries,
 		})
 	}
 
-	Ok(pages)
+	fn get_manga_update(
+		&self,
+		mut manga: Manga,
+		needs_details: bool,
+		needs_chapters: bool,
+	) -> Result<Manga> {
+		if needs_details {
+			let url = format!("{}/comic/{}", WWW_URL, manga.key);
+			let html = Request::get(&url)?.header("User-Agent", UA).html()?;
+
+			// extract comic ID from inline script
+			let page_html = html.select_first("html")
+				.and_then(|e| e.html())
+				.unwrap_or_default();
+			let comic_id = page_html
+				.split_once("comic.show(")
+				.and_then(|(_, after)| after.split_once(");"))
+				.map(|(before, _)| before.to_string())
+				.unwrap_or_default();
+			manga.key = comic_id;
+
+			manga.cover = html
+				.select_first(".comic-info-box>.box-back")
+				.and_then(|e| e.attr("style"))
+				.map(|s| {
+					s.replace("background-image: url('", "")
+						.replace("')", "")
+				});
+			manga.title = html
+				.select_first(".comic-info-box>.comic-info>h1")
+				.and_then(|e| e.text())
+				.unwrap_or_default();
+			let author_text = html
+				.select_first(".comic-info-box>.comic-info>.au-name")
+				.and_then(|e| e.text())
+				.unwrap_or_default()
+				.replace("作者：", "")
+				.replace("&amp", "&");
+			let authors: Vec<String> = author_text
+				.split("&")
+				.filter(|a| !a.trim().is_empty())
+				.map(|a| a.trim().to_string())
+				.collect();
+			manga.authors = Some(authors);
+			manga.description = html
+				.select_first(".comic-intro")
+				.and_then(|e| e.text())
+				.map(|s| s.trim().replace("&hellip", "…"));
+			let tags_html = html
+				.select_first(".comic-info-box>.comic-info>.comic-tags")
+				.and_then(|e| e.html())
+				.unwrap_or_default();
+			let tags: Vec<String> = tags_html
+				.split_once("</span>")
+				.map(|(_, after)| after)
+				.unwrap_or("")
+				.trim()
+				.split(" ")
+				.filter(|a| !a.trim().is_empty())
+				.map(|a| a.to_string())
+				.collect();
+			manga.tags = Some(tags);
+			manga.status = MangaStatus::Ongoing;
+			manga.content_rating = ContentRating::NSFW;
+			manga.viewer = Viewer::Webtoon;
+			manga.url = Some(url);
+		}
+
+		if needs_chapters {
+			let url = format!("{}/api/comic/chapter?mid={}", WWW_URL, manga.key);
+			let resp: ChapterResponse = Request::get(&url)?
+				.header("User-Agent", UA)
+				.json_owned()?;
+			let mut chapters: Vec<Chapter> = Vec::new();
+
+			for (index, item) in resp.data.iter().enumerate() {
+				let title = item
+					.name
+					.trim()
+					.replace("&lt;", "<")
+					.replace("&gt;", ">")
+					.replace("&#40;", "(")
+					.replace("&#41;", ")")
+					.replace("&ldquo;", "\u{201c}")
+					.replace("&rdquo;", "\u{201d}")
+					.replace("&hellip;", "…")
+					.replace("&hearts;", "♥");
+				chapters.push(Chapter {
+					key: format!("{}", item.id),
+					title: Some(title),
+					chapter_number: Some((index + 1) as f32),
+					url: Some(item.link.clone()),
+					..Default::default()
+				});
+			}
+			chapters.reverse();
+			manga.chapters = Some(chapters);
+		}
+
+		Ok(manga)
+	}
+
+	fn get_page_list(&self, _manga: Manga, chapter: Chapter) -> Result<Vec<Page>> {
+		let url = format!("{}/chapter/{}", WWW_URL, chapter.key);
+		let html = Request::get(&url)?.header("User-Agent", UA).html()?;
+		let mut pages: Vec<Page> = Vec::new();
+
+		if let Some(items) = html.select(".comic-page>img") {
+			for item in items {
+				let img_url = item.attr("src").unwrap_or_default().trim().to_string();
+				pages.push(Page {
+					content: PageContent::url(img_url),
+					..Default::default()
+				});
+			}
+		}
+
+		Ok(pages)
+	}
 }
+
+register_source!(Se8Source);
