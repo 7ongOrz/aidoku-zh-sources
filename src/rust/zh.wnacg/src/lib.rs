@@ -54,8 +54,8 @@ fn parse_manga_list(html: aidoku::imports::html::Document) -> Result<MangaPageRe
 	}
 
 	Ok(MangaPageResult {
+		has_next_page: !entries.is_empty(),
 		entries,
-		has_next_page: true,
 	})
 }
 
