@@ -136,9 +136,9 @@
     {
       "id": "zh.ho5ho",
       "name": "HO5HO",
-      "version": 1,
-      "iconURL": "icons/zh.ho5ho-v1.png",
-      "downloadURL": "sources/zh.ho5ho-v1.aix",
+      "version": 2,
+      "iconURL": "icons/zh.ho5ho-v2.png",
+      "downloadURL": "sources/zh.ho5ho-v2.aix",
       "languages": [
         "zh"
       ],
@@ -172,9 +172,9 @@
     {
       "id": "zh.manhuadb",
       "name": "漫画DB",
-      "version": 1,
-      "iconURL": "icons/zh.manhuadb-v1.png",
-      "downloadURL": "sources/zh.manhuadb-v1.aix",
+      "version": 2,
+      "iconURL": "icons/zh.manhuadb-v2.png",
+      "downloadURL": "sources/zh.manhuadb-v2.aix",
       "languages": [
         "zh"
       ],
@@ -244,9 +244,9 @@
     {
       "id": "zh.se8",
       "name": "韩漫库",
-      "version": 3,
-      "iconURL": "icons/zh.se8-v3.png",
-      "downloadURL": "sources/zh.se8-v3.aix",
+      "version": 4,
+      "iconURL": "icons/zh.se8-v4.png",
+      "downloadURL": "sources/zh.se8-v4.aix",
       "languages": [
         "zh"
       ],
