@@ -254,18 +254,6 @@
       "baseURL": "https://se8.us"
     },
     {
-      "id": "zh.wnacg",
-      "name": "绅士漫画",
-      "version": 5,
-      "iconURL": "icons/zh.wnacg-v5.png",
-      "downloadURL": "sources/zh.wnacg-v5.aix",
-      "languages": [
-        "zh"
-      ],
-      "contentRating": 2,
-      "baseURL": "https://www.wnacg.ru"
-    },
-    {
       "id": "zh.yandanshe",
       "name": "言耽社",
       "version": 1,
