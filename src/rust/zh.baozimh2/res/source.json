@@ -2,7 +2,7 @@
   "info": {
     "id": "zh.baozimh2",
     "name": "包子漫画2",
-    "version": 6,
+    "version": 7,
     "url": "https://baozimh.org",
     "languages": [
       "zh"
@@ -10,6 +10,7 @@
     "contentRating": 0
   },
   "listings": [
+    "全部",
     "人气推荐",
     "热门更新",
     "最新上架"

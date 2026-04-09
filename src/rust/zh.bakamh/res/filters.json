@@ -1,10 +1,13 @@
 [
   {
-    "type": "text", "id": "title"
+    "type": "text",
+    "id": "title"
   },
   {
     "type": "select",
-    "name": "进度",
-    "options": ["全部", "连载", "完结"]
+    "title": "进度",
+    "id": "finish",
+    "options": ["全部", "连载", "完结"],
+    "ids": ["", "on-going", "end"]
   }
 ]
