@@ -1,6 +1,6 @@
 [
   {
-    "type": "title"
+    "type": "text", "id": "title"
   },
   {
     "type": "select",
