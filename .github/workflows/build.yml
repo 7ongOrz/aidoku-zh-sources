@@ -29,10 +29,8 @@ jobs:
             [ -f "$src/package.json" ] && (cd "$src" && npm ci)
           done
 
-      - name: Setup Rust nightly
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          targets: wasm32-unknown-unknown
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Cargo registry
         uses: actions/cache@v5
@@ -48,6 +46,11 @@ jobs:
         run: |
           cargo install --git https://github.com/Aidoku/aidoku-rs --locked aidoku-cli
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Setup Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
 
       - name: Build all sources
         run: bash -O globstar ./build.sh
