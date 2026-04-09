@@ -1,121 +1,150 @@
 use aidoku::{
+	alloc::{String, Vec},
 	prelude::*,
-	std::{ArrayRef, ObjectRef, String, Vec},
-	Chapter, Manga, MangaContentRating, MangaStatus, MangaViewer, Page,
+	Chapter, ContentRating, Manga, MangaPageResult, MangaStatus, Page, PageContent, Viewer,
 };
-use alloc::string::ToString;
+use aidoku::alloc::string::ToString;
+use serde::Deserialize;
 
 use crate::helper;
 
-pub fn has_more(data: ObjectRef) -> bool {
-	let page = data.get("page").as_int().unwrap();
-	let pages = data.get("pages").as_int().unwrap();
-	pages > page
+#[derive(Deserialize)]
+pub struct PicaResponse<T> {
+	pub data: T,
 }
 
-pub fn parse_manga_list(manga_list: ArrayRef) -> Vec<Manga> {
-	manga_list
-		.map(|manga| parse_manga(manga.as_object().unwrap()))
-		.collect::<Vec<Manga>>()
+#[derive(Deserialize)]
+pub struct ComicsContainer<T> {
+	pub comics: T,
 }
 
-pub fn parse_manga(manga: ObjectRef) -> Manga {
-	let manga = match manga.get("comic").as_object() {
-		Ok(value) => value,
-		Err(_) => manga,
-	};
-	let id = manga.get("_id").as_string().unwrap().read();
-	let thumb = manga.get("thumb").as_object().unwrap();
-	let host = thumb.get("fileServer").as_string().unwrap().read();
-	let path = thumb.get("path").as_string().unwrap().read();
-	let cover = format!("{}/static/{}", host, path);
-	let title = manga.get("title").as_string().unwrap().read();
-	let author = manga
-		.get("author")
-		.as_string()
-		.unwrap()
-		.read()
+#[derive(Deserialize)]
+pub struct PagedList<T> {
+	pub docs: Vec<T>,
+	pub page: i32,
+	pub pages: i32,
+	#[serde(default)]
+	pub limit: i32,
+}
+
+#[derive(Deserialize)]
+pub struct MangaItem {
+	#[serde(rename = "_id")]
+	pub id: String,
+	pub title: String,
+	#[serde(default)]
+	pub author: String,
+	#[serde(default)]
+	pub description: String,
+	#[serde(default)]
+	pub categories: Vec<String>,
+	#[serde(default)]
+	pub finished: bool,
+	pub thumb: Thumb,
+}
+
+#[derive(Deserialize)]
+pub struct Thumb {
+	#[serde(rename = "fileServer")]
+	pub file_server: String,
+	pub path: String,
+}
+
+#[derive(Deserialize)]
+pub struct EpsResponse {
+	pub eps: PagedList<EpsItem>,
+}
+
+#[derive(Deserialize)]
+pub struct EpsItem {
+	pub order: i32,
+	pub title: String,
+}
+
+#[derive(Deserialize)]
+pub struct PagesResponse {
+	pub pages: PagedList<PageItem>,
+}
+
+#[derive(Deserialize)]
+pub struct PageItem {
+	pub media: Thumb,
+}
+
+pub fn manga_from_item(item: &MangaItem) -> Manga {
+	let cover = format!("{}/static/{}", item.thumb.file_server, item.thumb.path);
+	let url = helper::gen_manga_url(item.id.clone());
+	let authors: Vec<String> = item
+		.author
 		.split("&")
 		.map(|a| a.trim().to_string())
-		.collect::<Vec<String>>()
-		.join(", ");
-	let artist = String::new();
-	let description = manga
-		.get("description")
-		.as_string()
-		.unwrap_or_default()
-		.read();
-	let url = helper::gen_manga_url(id.clone());
-	let categories = manga
-		.get("categories")
-		.as_array()
-		.unwrap()
-		.map(|category| category.as_string().unwrap().read())
-		.collect::<Vec<String>>();
-	let status = if manga.get("finished").as_bool().unwrap_or_default() {
-		MangaStatus::Completed
+		.filter(|a| !a.is_empty())
+		.collect();
+	let viewer = if item.categories.contains(&String::from("WEBTOON")) {
+		Viewer::Webtoon
 	} else {
-		MangaStatus::Ongoing
-	};
-	let nsfw = MangaContentRating::Nsfw;
-	let viewer = if categories.contains(&String::from("WEBTOON")) {
-		MangaViewer::Scroll
-	} else {
-		MangaViewer::Rtl
+		Viewer::RightToLeft
 	};
 	Manga {
-		id,
-		cover,
-		title,
-		author,
-		artist,
-		description,
-		url,
-		categories,
-		status,
-		nsfw,
+		key: item.id.clone(),
+		title: item.title.clone(),
+		cover: Some(cover),
+		authors: Some(authors),
+		description: Some(item.description.clone()),
+		url: Some(url),
+		tags: Some(item.categories.clone()),
+		status: if item.finished {
+			MangaStatus::Completed
+		} else {
+			MangaStatus::Ongoing
+		},
+		content_rating: ContentRating::NSFW,
 		viewer,
+		..Default::default()
 	}
 }
 
-pub fn parse_chapter_list(manga_id: String, chapter_list: ArrayRef) -> Vec<Chapter> {
-	let mut chapters: Vec<Chapter> = Vec::new();
-
-	for item in chapter_list {
-		let item = item.as_object().unwrap();
-		let order = item.get("order").as_int().unwrap();
-		let id = order.to_string();
-		let title = item.get("title").as_string().unwrap().read();
-		let chapter = order as f32;
-		let url = helper::gen_chapter_url(manga_id.clone(), id.clone());
-		chapters.push(Chapter {
-			id,
-			title,
-			chapter,
-			url,
-			..Default::default()
-		});
-	}
-
-	chapters
+pub fn parse_manga_list(items: &[MangaItem]) -> Vec<Manga> {
+	items.iter().map(manga_from_item).collect()
 }
 
-pub fn parse_page_list(page_list: ArrayRef, offset: i32) -> Vec<Page> {
-	let mut pages: Vec<Page> = Vec::new();
+pub fn parse_paged_list<T>(list: &PagedList<T>) -> bool {
+	list.pages > list.page
+}
 
-	for (index, item) in page_list.enumerate() {
-		let item = item.as_object().unwrap();
-		let index = index as i32 + offset;
-		let media = item.get("media").as_object().unwrap();
-		let host = media.get("fileServer").as_string().unwrap().read();
-		let path = media.get("path").as_string().unwrap().read();
-		let url = format!("{}/static/{}", host, path);
-		pages.push(Page {
-			index,
-			url,
+pub fn parse_chapter_list(manga_id: &str, items: &[EpsItem]) -> Vec<Chapter> {
+	items
+		.iter()
+		.map(|item| {
+			let key = item.order.to_string();
+			let url = helper::gen_chapter_url(manga_id.to_string(), key.clone());
+			Chapter {
+				key,
+				title: Some(item.title.clone()),
+				chapter_number: Some(item.order as f32),
+				url: Some(url),
+				..Default::default()
+			}
+		})
+		.collect()
+}
+
+pub fn parse_page_list(items: &[PageItem], _offset: i32) -> Vec<Page> {
+	items
+		.iter()
+		.map(|item| Page {
+			content: PageContent::url(format!(
+				"{}/static/{}",
+				item.media.file_server, item.media.path
+			)),
 			..Default::default()
-		});
-	}
+		})
+		.collect()
+}
 
-	pages
+pub fn build_result<T>(items: &[MangaItem], paged: &PagedList<T>) -> MangaPageResult {
+	MangaPageResult {
+		entries: parse_manga_list(items),
+		has_next_page: parse_paged_list(paged),
+	}
 }

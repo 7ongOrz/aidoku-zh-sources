@@ -1,4 +1,4 @@
-use aidoku::{prelude::*, std::String};
+use aidoku::{alloc::String, prelude::*};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
