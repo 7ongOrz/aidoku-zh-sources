@@ -7,12 +7,11 @@ use aidoku::{
 	Chapter, ContentRating, FilterValue, ImageRequestProvider, Listing, ListingProvider, Manga,
 	MangaPageResult, MangaStatus, Page, PageContent, Result, Source, Viewer,
 };
-use alloc::string::ToString;
+use aidoku::alloc::string::ToString;
 
 const WWW_URL: &str = "https://www.wnacg.ru";
 const UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
-const FILTER_CATEGORY: [&str; 4] = ["", "5", "6", "7"];
 const FILTER_CATEGORY_5: [&str; 4] = ["5", "1", "12", "16"];
 const FILTER_CATEGORY_6: [&str; 4] = ["6", "9", "13", "17"];
 const FILTER_CATEGORY_7: [&str; 4] = ["7", "10", "14", "18"];
@@ -153,13 +152,13 @@ impl Source for WnacgSource {
 			}
 			manga.tags = Some(tags);
 			manga.status = MangaStatus::Unknown;
-			manga.content_rating = ContentRating::Nsfw;
+			manga.content_rating = ContentRating::NSFW;
 			manga.viewer = Viewer::RightToLeft;
 			manga.url = Some(url);
 		}
 
 		if needs_chapters {
-			manga.chapters = Some(alloc::vec![Chapter {
+			manga.chapters = Some(aidoku::alloc::vec![Chapter {
 				key: manga.key.clone(),
 				title: Some(String::from("第 1 话")),
 				chapter_number: Some(1.0),
