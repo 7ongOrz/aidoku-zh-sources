@@ -1,27 +1,19 @@
 #!/bin/bash
 
 for src in ./src/as/*; do
-  (
-    cd "$src"
-
-    if [ "$(cat ./res/source.json | grep 'deprecated' | awk '{print $2}')" == "true" ]; then
-      rm -rf ./build/package.aix
-    else
-      npm run build
-    fi
-  )
+  if grep -qxF "${src#./}" .deprecated-sources; then
+    rm -f "$src/build/package.aix"
+  else
+    (cd "$src" && npm run build)
+  fi
 done
 
 for src in ./src/rust/*; do
-  (
-    cd "$src"
-
-    if [ "$(cat ./res/source.json | grep 'deprecated' | awk '{print $2}')" == "true" ]; then
-      rm -rf ./package.aix
-    else
-      ./build.sh -a
-    fi
-  )
+  if grep -qxF "${src#./}" .deprecated-sources; then
+    rm -f "$src/package.aix"
+  else
+    aidoku package "$src"
+  fi
 done
 
-aidoku build ./src/**/*.aix
+aidoku build ./src/**/*.aix -n "Aidoku 中文图源"

@@ -1,10 +1,12 @@
 {
   "info": {
     "id": "zh.yandanshe",
-    "lang": "zh",
     "name": "言耽社",
     "version": 1,
     "url": "https://yandanshe.com",
-    "nsfw": 2
+    "languages": [
+      "zh"
+    ],
+    "contentRating": 2
   }
 }

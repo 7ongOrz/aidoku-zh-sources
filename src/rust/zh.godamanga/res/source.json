@@ -1,21 +1,17 @@
 {
   "info": {
     "id": "zh.godamanga",
-    "lang": "zh",
     "name": "G站漫画",
     "version": 9,
     "url": "https://godamh.com",
-    "nsfw": 0
+    "languages": [
+      "zh"
+    ],
+    "contentRating": 0
   },
   "listings": [
-    {
-      "name": "人气推荐"
-    },
-    {
-      "name": "热门更新"
-    },
-    {
-      "name": "最新上架"
-    }
+    "人气推荐",
+    "热门更新",
+    "最新上架"
   ]
 }

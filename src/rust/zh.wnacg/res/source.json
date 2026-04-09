@@ -1,24 +1,18 @@
 {
   "info": {
     "id": "zh.wnacg",
-    "lang": "zh",
     "name": "绅士漫画",
     "version": 5,
     "url": "https://www.wnacg.ru",
-    "nsfw": 2
+    "languages": [
+      "zh"
+    ],
+    "contentRating": 2
   },
   "listings": [
-    {
-      "name": "CG画集"
-    },
-    {
-      "name": "3D漫画"
-    },
-    {
-      "name": "Cosplay"
-    },
-    {
-      "name": "韩漫"
-    }
+    "CG画集",
+    "3D漫画",
+    "Cosplay",
+    "韩漫"
   ]
 }
