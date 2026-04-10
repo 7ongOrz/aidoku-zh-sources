@@ -1,0 +1,24 @@
+[
+  {
+    "type": "group",
+    "title": "账号",
+    "footer": "留空将自动注册匿名账号。若匿名账号被风控可自行填入已有账号。",
+    "items": [
+      {
+        "type": "text",
+        "key": "username",
+        "title": "用户名",
+        "placeholder": "可选",
+        "default": ""
+      },
+      {
+        "type": "text",
+        "key": "password",
+        "title": "密码",
+        "placeholder": "可选",
+        "secure": true,
+        "default": ""
+      }
+    ]
+  }
+]

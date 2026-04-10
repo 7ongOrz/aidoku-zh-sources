@@ -2,16 +2,14 @@
 use aidoku::{
 	alloc::{String, Vec},
 	prelude::*,
-	Chapter, ContentRating, FilterValue, Listing, ListingProvider, Manga, MangaPageResult,
-	MangaStatus, Page, Result, Source, Viewer,
+	Chapter, FilterValue, Listing, ListingProvider, Manga, MangaPageResult, Page, Result, Source,
 };
-use aidoku::alloc::string::ToString;
 
-mod crypto;
 mod helper;
 mod parser;
 
 const FILTER_ORDERING: [&str; 2] = ["popular", "datetime_updated"];
+const CHAPTERS_PAGE_LIMIT: i32 = 500;
 
 struct CopymangaSource;
 
@@ -59,10 +57,10 @@ impl Source for CopymangaSource {
 			helper::gen_explore_url(&theme, &top, &ordering, page)
 		};
 
-		let resp: parser::ListResponse = helper::get_json(&url)?;
-		let has_next_page = resp.results.total > resp.results.limit + resp.results.offset;
+		let results: parser::ListResults = helper::get_json(&url)?;
+		let has_next_page = results.total > results.limit + results.offset;
 		Ok(MangaPageResult {
-			entries: parser::parse_manga_list(resp.results.list),
+			entries: parser::parse_manga_list(results.list),
 			has_next_page,
 		})
 	}
@@ -73,93 +71,51 @@ impl Source for CopymangaSource {
 		needs_details: bool,
 		needs_chapters: bool,
 	) -> Result<Manga> {
+		let comic_url = helper::gen_comic_url(&manga.key);
+		let comic: parser::GetComicResults = helper::get_json_authed(&comic_url)?;
+
 		if needs_details {
-			let url = helper::gen_manga_url(&manga.key);
-			let html = helper::get_html(&url)?;
-
-			manga.cover = html
-				.select_first(".comicParticulars-left-img>img")
-				.and_then(|e| e.attr("data-src"));
-			manga.title = html
-				.select_first("h6")
-				.and_then(|e| e.text())
-				.unwrap_or_default();
-
-			let mut authors = Vec::new();
-			if let Some(items) = html.select(".comicParticulars-right-txt>a") {
-				for item in items {
-					if let Some(t) = item.text() {
-						authors.push(t);
-					}
-				}
-			}
-			manga.authors = Some(authors);
-
-			manga.description = html
-				.select_first(".intro")
-				.and_then(|e| e.text())
-				.map(|s| s.trim().to_string());
-
-			let mut tags = Vec::new();
-			if let Some(items) = html.select(".comicParticulars-tag>a") {
-				for item in items {
-					if let Some(t) = item.text() {
-						tags.push(t.replace('#', ""));
-					}
-				}
-			}
-			manga.tags = Some(tags);
-
-			let full_title = html
-				.select_first("title")
-				.and_then(|e| e.text())
-				.unwrap_or_default();
-			manga.status = if full_title.contains("連載中") {
-				MangaStatus::Ongoing
-			} else if full_title.contains("已完結") {
-				MangaStatus::Completed
-			} else {
-				MangaStatus::Unknown
-			};
-			manga.content_rating = ContentRating::Safe;
-			manga.viewer = Viewer::RightToLeft;
-			manga.url = Some(url);
+			parser::fill_manga_details(&mut manga, comic.comic);
 		}
 
 		if needs_chapters {
-			let manga_url = helper::gen_manga_url(&manga.key);
-			let text = helper::get_text(&manga_url)?;
-			let key = text
-				.split_once("var ccx = '")
-				.and_then(|(_, after)| after.split_once('\''))
-				.map(|(before, _)| before.to_string())
-				.unwrap_or_default();
-			let url = helper::gen_chapter_list_url(&manga.key);
-			let resp: parser::EncryptedResponse = helper::get_json(&url)?;
-			let decrypted = helper::decrypt(resp.results, key);
-			let data: parser::ChapterRoot = serde_json::from_str(&decrypted)?;
-			manga.chapters = Some(parser::parse_chapter_list(data));
+			let groups = parser::ordered_groups(comic.groups);
+			let mut all_chapters: Vec<Chapter> = Vec::new();
+			for group in groups {
+				let mut offset = 0i32;
+				loop {
+					let url = helper::gen_chapters_url(
+						&manga.key,
+						&group.path_word,
+						CHAPTERS_PAGE_LIMIT,
+						offset,
+					);
+					let page: parser::GetChaptersResults = helper::get_json_authed(&url)?;
+					let got = page.list.len();
+					let start = all_chapters.len();
+					all_chapters.extend(parser::parse_chapters(
+						&manga.key,
+						&group.name,
+						page.list,
+						start,
+					));
+					offset += got as i32;
+					if got == 0 || offset >= page.total {
+						break;
+					}
+				}
+			}
+			all_chapters.reverse();
+			manga.chapters = Some(all_chapters);
 		}
 
 		Ok(manga)
 	}
 
 	fn get_page_list(&self, manga: Manga, chapter: Chapter) -> Result<Vec<Page>> {
-		let url = helper::gen_page_list_url(&manga.key, &chapter.key);
-		let text = helper::get_text(&url)?;
-		let key = text
-			.split_once("var ccy = '")
-			.and_then(|(_, after)| after.split_once('\''))
-			.map(|(before, _)| before.to_string())
-			.unwrap_or_default();
-		let data = text
-			.split_once("contentKey=\"")
-			.and_then(|(_, after)| after.split_once('"'))
-			.map(|(before, _)| before.to_string())
-			.unwrap_or_default();
-		let decrypted = helper::decrypt(data, key);
-		let pages: Vec<parser::PageItem> = serde_json::from_str(&decrypted)?;
-		Ok(parser::parse_page_list(pages))
+		let url = helper::gen_chapter_detail_url(&manga.key, &chapter.key);
+		let results: parser::GetChapterResults = helper::get_json_authed(&url)?;
+		Ok(parser::parse_page_list(results.chapter))
 	}
 }
 
@@ -174,10 +130,10 @@ impl ListingProvider for CopymangaSource {
 			"全新上架" => helper::gen_newest_url(page),
 			_ => return self.get_search_manga_list(None, page, Vec::new()),
 		};
-		let resp: parser::ListResponse = helper::get_json(&url)?;
-		let has_next_page = resp.results.total > resp.results.limit + resp.results.offset;
+		let results: parser::ListResults = helper::get_json(&url)?;
+		let has_next_page = results.total > results.limit + results.offset;
 		Ok(MangaPageResult {
-			entries: parser::parse_manga_list(resp.results.list),
+			entries: parser::parse_manga_list(results.list),
 			has_next_page,
 		})
 	}
