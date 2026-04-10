@@ -1,10 +1,12 @@
 [
   {
-    "type": "text", "id": "title"
+    "type": "text",
+    "id": "title"
   },
   {
     "type": "select",
-    "name": "类型",
+    "title": "类型",
+    "id": "tag",
     "options": [
       "所有",
       "魔幻",
@@ -45,11 +47,53 @@
       "宅男",
       "推理",
       "杂志"
+    ],
+    "ids": [
+      "",
+      "mohuan",
+      "mofa",
+      "rexue",
+      "maoxian",
+      "xuanyi",
+      "zhentan",
+      "aiqing",
+      "xiaoyuan",
+      "gaoxiao",
+      "sige",
+      "kehuan",
+      "shengui",
+      "wudao",
+      "yinyue",
+      "baihe",
+      "hougong",
+      "jizhan",
+      "gedou",
+      "kongbu",
+      "mengxi",
+      "wuxia",
+      "shehui",
+      "lishi",
+      "danmei",
+      "lizhi",
+      "zhichang",
+      "shenghuo",
+      "zhiyu",
+      "weiniang",
+      "heidao",
+      "zhanzheng",
+      "jingji",
+      "tiyu",
+      "meishi",
+      "funv",
+      "zhainan",
+      "tuili",
+      "zazhi"
     ]
   },
   {
     "type": "select",
-    "name": "地区",
+    "title": "地区",
+    "id": "country",
     "options": [
       "所有",
       "日本",
@@ -58,11 +102,21 @@
       "内地",
       "韩国",
       "其他"
+    ],
+    "ids": [
+      "",
+      "japan",
+      "hongkong",
+      "europe",
+      "china",
+      "korea",
+      "other"
     ]
   },
   {
     "type": "select",
-    "name": "受众",
+    "title": "受众",
+    "id": "audience",
     "options": [
       "所有",
       "少女",
@@ -70,11 +124,20 @@
       "青年",
       "儿童",
       "通用"
+    ],
+    "ids": [
+      "",
+      "shaonv",
+      "shaonian",
+      "qingnian",
+      "ertong",
+      "tongyong"
     ]
   },
   {
     "type": "select",
-    "name": "年份",
+    "title": "年份",
+    "id": "year",
     "options": [
       "所有",
       "2025",
@@ -97,20 +160,50 @@
       "90年代",
       "80年代",
       "70年代或更早"
+    ],
+    "ids": [
+      "",
+      "2025",
+      "2024",
+      "2023",
+      "2022",
+      "2021",
+      "2020",
+      "2019",
+      "2018",
+      "2017",
+      "2016",
+      "2015",
+      "2014",
+      "2013",
+      "2012",
+      "2011",
+      "2010",
+      "200x",
+      "199x",
+      "198x",
+      "197x"
     ]
   },
   {
     "type": "select",
-    "name": "进度",
+    "title": "进度",
+    "id": "end",
     "options": [
       "所有",
       "连载中",
       "已完结"
+    ],
+    "ids": [
+      "",
+      "0",
+      "1"
     ]
   },
   {
     "type": "sort",
-    "name": "排序",
+    "title": "排序",
+    "id": "sort",
     "canAscend": true,
     "options": [
       "最新上架",

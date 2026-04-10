@@ -2,7 +2,7 @@
   "info": {
     "id": "zh.noy1",
     "name": "NoyAcg",
-    "version": 3,
+    "version": 4,
     "url": "https://noy1.top",
     "languages": [
       "zh"
@@ -10,6 +10,7 @@
     "contentRating": 2
   },
   "listings": [
+    "全部",
     "日阅读榜",
     "周阅读榜",
     "月阅读榜",

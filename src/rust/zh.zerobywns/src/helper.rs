@@ -1,94 +1,84 @@
 use aidoku::{
-	error::{AidokuError, AidokuErrorKind},
-	prelude::format,
-	std::{
-		defaults::{defaults_get, defaults_set},
-		html::Node,
+	alloc::{String, Vec},
+	imports::{
+		defaults::{defaults_get, defaults_set, DefaultValue},
+		html::Document,
 		net::{HttpMethod, Request},
-		StringRef,
 	},
+	prelude::format,
+	Result,
 };
-use alloc::{string::String, vec::Vec};
-
 const UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
-fn gen_request(url: String, method: HttpMethod) -> Request {
-	Request::new(url, method).header("User-Agent", UA)
-}
-
-fn handle_cookie_header(cookie_header: String) -> String {
-	return cookie_header
+fn handle_cookie_header(cookie_header: &str) -> String {
+	cookie_header
 		.replace(",", ";")
 		.split(";")
 		.filter(|a| a.contains("Ckng"))
 		.map(|a| a.trim())
 		.collect::<Vec<&str>>()
-		.join(";");
-}
-
-fn get_default(key: &str) -> Result<String, AidokuError> {
-	Ok(defaults_get(key)?.as_string()?.read())
+		.join(";")
 }
 
 pub fn get_url() -> String {
-	get_default("url").unwrap()
+	defaults_get::<String>("url").unwrap_or_default()
 }
 
-pub fn get_html(url: String) -> Result<Node, AidokuError> {
-	let default_cookie = get_default("cookie")?;
-	let request = gen_request(url.clone(), HttpMethod::Get).header("Cookie", &default_cookie);
+pub fn get_html(url: &str) -> Result<Document> {
+	let default_cookie: String = defaults_get("cookie").unwrap_or_default();
+	let response = Request::get(url)?
+		.header("User-Agent", UA)
+		.header("Cookie", &default_cookie)
+		.send()?;
 
-	request.send();
+	let cookie_header = response.get_header("set-cookie").unwrap_or_default();
+	let html = response.get_html()?;
 
-	let cookie_header = request.get_header("set-cookie").unwrap_or_default().read();
-	let html = request.html().unwrap();
+	let needs_login = html
+		.select_first("#main_message #messagetext>p")
+		.and_then(|e| e.text())
+		.unwrap_or_default()
+		.contains("仅限用户观看，请先登录");
 
-	if html
-		.select("#main_message #messagetext>p")
-		.text()
-		.read()
-		.contains("仅限用户观看，请先登录")
-	{
-		let username = get_default("username")?;
-		let password = get_default("password")?;
+	if needs_login {
+		let username: String = defaults_get("username").unwrap_or_default();
+		let password: String = defaults_get("password").unwrap_or_default();
 
 		if username.is_empty() || password.is_empty() {
-			return Err(AidokuError {
-				reason: AidokuErrorKind::DefaultNotFound,
-			});
+			return Ok(html);
 		}
 
-		let formhash = html.select("input[name=formhash]").attr("value").read();
-		let login_cookie = handle_cookie_header(cookie_header);
+		let formhash = html
+			.select_first("input[name=formhash]")
+			.and_then(|e| e.attr("value"))
+			.unwrap_or_default();
+		let login_cookie = handle_cookie_header(&cookie_header);
 		let body = format!(
 			"username={}&cookietime=2592000&password={}&formhash={}&quickforward=yes&handlekey=ls",
 			username, password, formhash
 		);
-		let login_url = format!("{}/member.php?mod=logging&action=login&loginsubmit=yes&infloat=yes&lssubmit=yes&inajax=1", get_url());
-		let login_request = gen_request(login_url, HttpMethod::Post)
+		let base_url = get_url();
+		let login_url = format!(
+			"{}/member.php?mod=logging&action=login&loginsubmit=yes&infloat=yes&lssubmit=yes&inajax=1",
+			base_url
+		);
+		let login_response = Request::new(&login_url, HttpMethod::Post)?
+			.header("User-Agent", UA)
 			.header("Content-Type", "application/x-www-form-urlencoded")
 			.header("Cookie", &login_cookie)
-			.body(body.as_bytes());
+			.body(body.as_bytes())
+			.send()?;
 
-		login_request.send();
-
-		let new_cookie_header = login_request
+		let new_cookie_header = login_response
 			.get_header("set-cookie")
-			.unwrap_or_default()
-			.read();
+			.unwrap_or_default();
 
-		if !new_cookie_header.contains("auth") {
-			return Err(AidokuError {
-				reason: AidokuErrorKind::DefaultNotFound,
-			});
+		if new_cookie_header.contains("auth") {
+			let new_cookie = handle_cookie_header(&new_cookie_header);
+			defaults_set("cookie", DefaultValue::String(new_cookie));
+			return get_html(url);
 		}
-
-		let new_cookie = handle_cookie_header(new_cookie_header);
-
-		defaults_set("cookie", StringRef::from(new_cookie).0);
-
-		return get_html(url);
 	}
 
-	return Ok(html);
+	Ok(html)
 }

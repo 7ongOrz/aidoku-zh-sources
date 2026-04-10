@@ -1,10 +1,12 @@
 [
   {
-    "type": "text", "id": "title"
+    "type": "text",
+    "id": "title"
   },
   {
     "type": "select",
-    "name": "标签",
+    "title": "标签",
+    "id": "tag",
     "options": [
       "全部",
       "萝莉",
@@ -20,13 +22,34 @@
       "百合",
       "无修正",
       "自慰"
+    ],
+    "ids": [
+      "",
+      "蘿莉",
+      "全彩",
+      "長筒襪",
+      "原創",
+      "女學生制服",
+      "雙馬尾",
+      "巨乳",
+      "中出",
+      "性玩具",
+      "姐妹",
+      "百合",
+      "無修正",
+      "自慰"
     ]
   },
   {
     "type": "sort",
-    "name": "排序",
+    "title": "排序",
+    "id": "sort",
     "canAscend": false,
-    "options": ["时间", "阅读量", "收藏"],
+    "options": [
+      "时间",
+      "阅读量",
+      "收藏"
+    ],
     "default": {
       "index": 0,
       "ascending": false

@@ -2,7 +2,7 @@
   "info": {
     "id": "zh.zaimanhua",
     "name": "再漫画",
-    "version": 1,
+    "version": 2,
     "url": "https://www.zaimanhua.com",
     "languages": [
       "zh"
@@ -10,6 +10,7 @@
     "contentRating": 0
   },
   "listings": [
+    "全部",
     "周人气排行",
     "月人气排行",
     "总人气排行",

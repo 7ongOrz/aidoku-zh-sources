@@ -1,10 +1,6 @@
 [
   {
-    "type": "text", "id": "title"
-  },
-  {
     "type": "select",
-    "name": "题材",
     "options": [
       "全部",
       "青春",
@@ -29,16 +25,29 @@
       "出轨",
       "正妹",
       "家教"
-    ]
+    ],
+    "title": "题材",
+    "id": "tag"
   },
   {
     "type": "select",
-    "name": "地区",
-    "options": ["全部", "韩国", "日本", "台湾"]
+    "options": [
+      "全部",
+      "韩国",
+      "日本",
+      "台湾"
+    ],
+    "title": "地区",
+    "id": "area"
   },
   {
     "type": "select",
-    "name": "进度",
-    "options": ["全部", "连载", "完结"]
+    "options": [
+      "全部",
+      "连载",
+      "完结"
+    ],
+    "title": "进度",
+    "id": "end"
   }
 ]

@@ -1,184 +1,294 @@
 #![no_std]
-extern crate alloc;
-
 use aidoku::{
-	error::Result,
+	alloc::{String, Vec},
+	imports::{
+		defaults::{defaults_get, defaults_set, DefaultValue},
+		net::{HttpMethod, Request},
+	},
 	prelude::*,
-	std::{net::Request, String, Vec},
-	Chapter, Filter, FilterType, Listing, Manga, MangaPageResult, Page,
+	Chapter, ContentRating, FilterValue, ImageRequestProvider, Listing, ListingProvider, Manga,
+	MangaPageResult, MangaStatus, Page, PageContent, Result, Source, Viewer,
 };
-use alloc::string::ToString;
+use aidoku::alloc::string::ToString;
+use serde::Deserialize;
 
-mod helper;
-mod parser;
+const WWW_URL: &str = "https://noy1.top";
+const PIC_URL: &str = "https://img.noy.asia";
 
-const FILTER_TAG: [&str; 14] = [
-	"",
-	"蘿莉",
-	"全彩",
-	"長筒襪",
-	"原創",
-	"女學生制服",
-	"雙馬尾",
-	"巨乳",
-	"中出",
-	"性玩具",
-	"姐妹",
-	"百合",
-	"無修正",
-	"自慰",
-];
 const FILTER_SORT: [&str; 3] = ["bid", "views", "favorites"];
 
-#[get_manga_list]
-fn get_manga_list(filters: Vec<Filter>, page: i32) -> Result<MangaPageResult> {
-	let mut query = String::new();
-	let mut tag = String::new();
-	let mut sort = String::from("bid");
+#[derive(Deserialize)]
+struct ListResponse {
+	info: Option<Vec<MangaItem>>,
+	#[serde(rename = "Info")]
+	info_upper: Option<Vec<MangaItem>>,
+	len: i64,
+}
 
-	for filter in filters {
-		match filter.kind {
-			FilterType::Title => {
-				query = filter.value.as_string()?.read();
-			}
-			FilterType::Select => {
-				let index = filter.value.as_int()? as usize;
-				match filter.name.as_str() {
-					"标签" => {
-						tag = FILTER_TAG[index].to_string();
-					}
-					_ => continue,
-				}
-			}
-			FilterType::Sort => {
-				let value = match filter.value.as_object() {
-					Ok(value) => value,
-					Err(_) => continue,
-				};
-				let index = value.get("index").as_int()? as usize;
-				sort = FILTER_SORT[index].to_string();
-			}
-			_ => continue,
-		}
+#[derive(Deserialize)]
+struct MangaItem {
+	#[serde(rename = "Bid")]
+	bid: String,
+	#[serde(rename = "Bookname")]
+	bookname: String,
+	#[serde(rename = "Author")]
+	author: String,
+	#[serde(rename = "Ptag")]
+	ptag: String,
+}
+
+#[derive(Deserialize)]
+struct DetailResponse {
+	#[serde(rename = "Bookname")]
+	bookname: String,
+	#[serde(rename = "Author")]
+	author: String,
+	#[serde(rename = "Ptag")]
+	ptag: String,
+	#[serde(rename = "Len")]
+	len: i32,
+}
+
+fn get_session() -> String {
+	defaults_get::<String>("session").unwrap_or_default()
+}
+
+fn login() -> Result<String> {
+	let username: String = defaults_get("username").unwrap_or_default();
+	let password: String = defaults_get("password").unwrap_or_default();
+
+	let url = format!("{}/api/login", WWW_URL);
+	let body = format!("user={}&pass={}", username, password);
+	let resp = Request::new(&url, HttpMethod::Post)?
+		.header("Content-Type", "application/x-www-form-urlencoded")
+		.body(body.as_bytes())
+		.send()?;
+
+	let cookie_header = resp.get_header("set-cookie").unwrap_or_default();
+	let session = cookie_header
+		.split_once("NOY_SESSION=")
+		.and_then(|(_, after)| after.split_once(";"))
+		.map(|(before, _)| before.to_string())
+		.unwrap_or_default();
+
+	defaults_set("session", DefaultValue::String(session.clone()));
+	Ok(session)
+}
+
+fn post_json<T: serde::de::DeserializeOwned>(url: &str, body: &str) -> Result<T> {
+	let session = get_session();
+	let session = if session.is_empty() {
+		login()?
+	} else {
+		session
+	};
+
+	let cookie = format!("NOY_SESSION={}", session);
+	let resp = Request::new(url, HttpMethod::Post)?
+		.header("Content-Type", "application/x-www-form-urlencoded")
+		.header("Cookie", &cookie)
+		.body(body.as_bytes())
+		.send()?;
+
+	if resp.status_code() == 401 {
+		let new_session = login()?;
+		let cookie = format!("NOY_SESSION={}", new_session);
+		return Request::new(url, HttpMethod::Post)?
+			.header("Content-Type", "application/x-www-form-urlencoded")
+			.header("Cookie", &cookie)
+			.body(body.as_bytes())
+			.json_owned();
 	}
 
-	let json = if query.is_empty() {
-		helper::explore(tag.clone(), sort, page)?
-	} else {
-		helper::search(query.clone(), page)?
-	};
-
-	let data = json.as_object()?;
-	let key = if query.is_empty() && tag.is_empty() {
-		"info"
-	} else {
-		"Info"
-	};
-	let list = data.get(key).as_array()?;
-	let total = data.get("len").as_int()? as i32;
-	let has_more = page * 20 < total;
-
-	Ok(MangaPageResult {
-		manga: parser::parse_manga_list(list),
-		has_more,
-	})
+	let value: T = resp.get_json_owned()?;
+	Ok(value)
 }
 
-#[get_manga_listing]
-fn get_manga_listing(listing: Listing, page: i32) -> Result<MangaPageResult> {
-	let mut name = String::new();
-	let mut level = String::new();
-
-	match listing.name.as_str() {
-		"日阅读榜" => {
-			name.push_str("readLeaderboard");
-			level.push_str("day");
-		}
-		"周阅读榜" => {
-			name.push_str("readLeaderboard");
-			level.push_str("week");
-		}
-		"月阅读榜" => {
-			name.push_str("readLeaderboard");
-			level.push_str("moon");
-		}
-		"日收藏榜" => {
-			name.push_str("favLeaderboard");
-			level.push_str("day");
-		}
-		"周收藏榜" => {
-			name.push_str("favLeaderboard");
-			level.push_str("week");
-		}
-		"月收藏榜" => {
-			name.push_str("favLeaderboard");
-			level.push_str("moon");
-		}
-		"高质量榜" => {
-			name.push_str("proportion");
-		}
-		_ => return get_manga_list(Vec::new(), page),
-	};
-
-	let json = helper::rank(name, level, page)?;
-	let data = json.as_object()?;
-	let list = data.get("info").as_array()?;
-	let total = data.get("len").as_int()? as i32;
-	let has_more = page * 20 < total;
-
-	Ok(MangaPageResult {
-		manga: parser::parse_manga_list(list),
-		has_more,
-	})
-}
-
-#[get_manga_details]
-fn get_manga_details(id: String) -> Result<Manga> {
-	let json = helper::details(id)?;
-	let data = json.as_object()?;
-
-	Ok(parser::parse_manga(data))
-}
-
-#[get_chapter_list]
-fn get_chapter_list(id: String) -> Result<Vec<Chapter>> {
-	let url = helper::gen_chapter_url(id.clone());
-	let mut chapters: Vec<Chapter> = Vec::new();
-	let title = String::from("第 1 话");
-	let chapter = 1 as f32;
-	chapters.push(Chapter {
-		id,
-		title,
-		chapter,
-		url,
+fn parse_manga_item(item: &MangaItem) -> Manga {
+	let tags: Vec<String> = item
+		.ptag
+		.split(' ')
+		.filter(|s| !s.is_empty())
+		.map(|s| s.to_string())
+		.collect();
+	Manga {
+		key: item.bid.clone(),
+		title: item.bookname.clone(),
+		cover: Some(format!("{}/{}/m1.webp", PIC_URL, item.bid)),
+		authors: Some(aidoku::alloc::vec![item.author.clone()]),
+		tags: Some(tags),
+		url: Some(format!("{}/#/book/{}", WWW_URL, item.bid)),
+		status: MangaStatus::Completed,
+		content_rating: ContentRating::NSFW,
+		viewer: Viewer::RightToLeft,
 		..Default::default()
-	});
-
-	Ok(chapters)
+	}
 }
 
-#[get_page_list]
-fn get_page_list(manga_id: String, _: String) -> Result<Vec<Page>> {
-	let json = helper::details(manga_id.clone())?;
-	let data = json.as_object()?;
-	let len = data.get("Len").as_int()? as i32;
-	let mut pages: Vec<Page> = Vec::new();
-	let mut index = 0 as i32;
+struct Noy1Source;
 
-	while index < len {
-		let url = helper::gen_page_url(manga_id.clone(), index + 1);
-		pages.push(Page {
-			index,
-			url,
-			..Default::default()
-		});
-		index += 1;
+impl Source for Noy1Source {
+	fn new() -> Self {
+		Self
 	}
 
-	Ok(pages)
+	fn get_search_manga_list(
+		&self,
+		query: Option<String>,
+		page: i32,
+		filters: Vec<FilterValue>,
+	) -> Result<MangaPageResult> {
+		let mut tag = String::new();
+		let mut sort = String::from("bid");
+
+		for filter in filters {
+			match filter {
+				FilterValue::Select { id, value } => {
+					if id == "tag" {
+						tag = value;
+					}
+				}
+				FilterValue::Sort { id, index, .. } => {
+					if id == "sort" {
+						if let Some(s) = FILTER_SORT.get(index as usize) {
+							sort = s.to_string();
+						}
+					}
+				}
+				_ => {}
+			}
+		}
+
+		if let Some(query) = query {
+			let url = format!("{}/api/search_v2", WWW_URL);
+			let body = format!("info={}&type=de&sort=bid&page={}", query, page);
+			let resp: ListResponse = post_json(&url, &body)?;
+			let items = resp.info_upper.or(resp.info).unwrap_or_default();
+			let entries: Vec<Manga> = items.iter().map(parse_manga_item).collect();
+			let has_next_page = page * 20 < resp.len as i32;
+			Ok(MangaPageResult {
+				has_next_page,
+				entries,
+			})
+		} else if tag.is_empty() {
+			let url = format!("{}/api/booklist_v2", WWW_URL);
+			let body = format!("page={}", page);
+			let resp: ListResponse = post_json(&url, &body)?;
+			let items = resp.info.unwrap_or_default();
+			let entries: Vec<Manga> = items.iter().map(parse_manga_item).collect();
+			let has_next_page = page * 20 < resp.len as i32;
+			Ok(MangaPageResult {
+				has_next_page,
+				entries,
+			})
+		} else {
+			let url = format!("{}/api/search_v2", WWW_URL);
+			let body = format!("info={}&type=tag&sort={}&page={}", tag, sort, page);
+			let resp: ListResponse = post_json(&url, &body)?;
+			let items = resp.info_upper.or(resp.info).unwrap_or_default();
+			let entries: Vec<Manga> = items.iter().map(parse_manga_item).collect();
+			let has_next_page = page * 20 < resp.len as i32;
+			Ok(MangaPageResult {
+				has_next_page,
+				entries,
+			})
+		}
+	}
+
+	fn get_manga_update(
+		&self,
+		mut manga: Manga,
+		needs_details: bool,
+		needs_chapters: bool,
+	) -> Result<Manga> {
+		if needs_details {
+			let url = format!("{}/api/getbookinfo", WWW_URL);
+			let body = format!("bid={}", manga.key);
+			let detail: DetailResponse = post_json(&url, &body)?;
+
+			manga.title = detail.bookname;
+			manga.cover = Some(format!("{}/{}/m1.webp", PIC_URL, manga.key));
+			manga.authors = Some(aidoku::alloc::vec![detail.author]);
+			manga.tags = Some(
+				detail
+					.ptag
+					.split(' ')
+					.filter(|s| !s.is_empty())
+					.map(|s| s.to_string())
+					.collect(),
+			);
+			manga.url = Some(format!("{}/#/book/{}", WWW_URL, manga.key));
+			manga.status = MangaStatus::Completed;
+			manga.content_rating = ContentRating::NSFW;
+			manga.viewer = Viewer::RightToLeft;
+		}
+
+		if needs_chapters {
+			manga.chapters = Some(aidoku::alloc::vec![Chapter {
+				key: manga.key.clone(),
+				title: Some(String::from("第 1 话")),
+				chapter_number: Some(1.0),
+				url: Some(format!("{}/#/read/{}", WWW_URL, manga.key)),
+				..Default::default()
+			}]);
+		}
+
+		Ok(manga)
+	}
+
+	fn get_page_list(&self, manga: Manga, _chapter: Chapter) -> Result<Vec<Page>> {
+		let url = format!("{}/api/getbookinfo", WWW_URL);
+		let body = format!("bid={}", manga.key);
+		let detail: DetailResponse = post_json(&url, &body)?;
+
+		let pages: Vec<Page> = (1..=detail.len)
+			.map(|i| Page {
+				content: PageContent::url(format!("{}/{}/{}.webp", PIC_URL, manga.key, i)),
+				..Default::default()
+			})
+			.collect();
+		Ok(pages)
+	}
 }
 
-#[modify_image_request]
-fn modify_image_request(request: Request) {
-	request.header("Referer", helper::WWW_URL);
+impl ListingProvider for Noy1Source {
+	fn get_manga_list(&self, listing: Listing, page: i32) -> Result<MangaPageResult> {
+		let (name, level) = match listing.id.as_str() {
+			"日阅读榜" => ("readLeaderboard", "day"),
+			"周阅读榜" => ("readLeaderboard", "week"),
+			"月阅读榜" => ("readLeaderboard", "moon"),
+			"日收藏榜" => ("favLeaderboard", "day"),
+			"周收藏榜" => ("favLeaderboard", "week"),
+			"月收藏榜" => ("favLeaderboard", "moon"),
+			"高质量榜" => ("proportion", ""),
+			_ => return self.get_search_manga_list(None, page, Vec::new()),
+		};
+
+		let url = format!("{}/api/{}", WWW_URL, name);
+		let body = if !level.is_empty() {
+			format!("page={}&type={}", page, level)
+		} else {
+			format!("page={}", page)
+		};
+		let resp: ListResponse = post_json(&url, &body)?;
+		let items = resp.info.unwrap_or_default();
+		let entries: Vec<Manga> = items.iter().map(parse_manga_item).collect();
+		let has_next_page = page * 20 < resp.len as i32;
+		Ok(MangaPageResult {
+			has_next_page,
+			entries,
+		})
+	}
 }
+
+impl ImageRequestProvider for Noy1Source {
+	fn get_image_request(
+		&self,
+		url: String,
+		_context: Option<aidoku::PageContext>,
+	) -> Result<Request> {
+		Ok(Request::get(&url)?.header("Referer", WWW_URL))
+	}
+}
+
+register_source!(Noy1Source, ListingProvider, ImageRequestProvider);

@@ -1,10 +1,6 @@
 [
   {
-    "type": "text", "id": "title"
-  },
-  {
     "type": "select",
-    "name": "类型",
     "options": [
       "全部",
       "恋爱",
@@ -32,16 +28,30 @@
       "韩漫",
       "少年",
       "其它"
-    ]
+    ],
+    "title": "类型",
+    "id": "category"
   },
   {
     "type": "select",
-    "name": "地区",
-    "options": ["全部", "中国", "日本", "韩国", "欧美"]
+    "options": [
+      "全部",
+      "中国",
+      "日本",
+      "韩国",
+      "欧美"
+    ],
+    "title": "地区",
+    "id": "region"
   },
   {
     "type": "select",
-    "name": "状态",
-    "options": ["全部", "连载中", "已完结"]
+    "options": [
+      "全部",
+      "连载中",
+      "已完结"
+    ],
+    "title": "状态",
+    "id": "status"
   }
 ]

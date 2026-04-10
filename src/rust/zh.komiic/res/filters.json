@@ -1,10 +1,6 @@
 [
   {
-    "type": "text", "id": "title"
-  },
-  {
     "type": "select",
-    "name": "类型",
     "options": [
       "全部",
       "爱情",
@@ -44,20 +40,22 @@
       "音乐",
       "体育",
       "黑道"
-    ]
+    ],
+    "title": "类型",
+    "id": "category"
   },
   {
     "type": "select",
-    "name": "状态",
     "options": [
       "全部",
       "连载",
       "完结"
-    ]
+    ],
+    "title": "状态",
+    "id": "status"
   },
   {
     "type": "sort",
-    "name": "排序",
     "canAscend": false,
     "options": [
       "更新",
@@ -67,6 +65,8 @@
     "default": {
       "index": 0,
       "ascending": false
-    }
+    },
+    "title": "排序",
+    "id": "order"
   }
 ]

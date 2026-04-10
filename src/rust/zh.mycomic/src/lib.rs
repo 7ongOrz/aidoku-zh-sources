@@ -1,75 +1,31 @@
 #![no_std]
-extern crate alloc;
-
 use aidoku::{
-	error::Result,
-	helpers::{substring::Substring, uri::encode_uri},
+	alloc::{String, Vec},
+	helpers::uri::encode_uri,
+	imports::net::Request,
 	prelude::*,
-	std::{
-		json,
-		net::{HttpMethod, Request},
-		String, Vec,
-	},
-	Chapter, Filter, FilterType, Manga, MangaContentRating, MangaPageResult, MangaStatus,
-	MangaViewer, Page,
+	Chapter, ContentRating, FilterValue, ImageRequestProvider, Manga, MangaPageResult, MangaStatus,
+	Page, PageContent, Result, Source, Viewer,
 };
-use alloc::string::ToString;
+use aidoku::alloc::string::ToString;
 use regex::Regex;
+use serde::Deserialize;
 
 const WWW_URL: &str = "https://mycomic.com/cn";
 
-const FILTER_TAG: [&str; 39] = [
-	"",
-	"mohuan",
-	"mofa",
-	"rexue",
-	"maoxian",
-	"xuanyi",
-	"zhentan",
-	"aiqing",
-	"xiaoyuan",
-	"gaoxiao",
-	"sige",
-	"kehuan",
-	"shengui",
-	"wudao",
-	"yinyue",
-	"baihe",
-	"hougong",
-	"jizhan",
-	"gedou",
-	"kongbu",
-	"mengxi",
-	"wuxia",
-	"shehui",
-	"lishi",
-	"danmei",
-	"lizhi",
-	"zhichang",
-	"shenghuo",
-	"zhiyu",
-	"weiniang",
-	"heidao",
-	"zhanzheng",
-	"jingji",
-	"tiyu",
-	"meishi",
-	"funv",
-	"zhainan",
-	"tuili",
-	"zazhi",
-];
-const FILTER_COUNTRY: [&str; 7] = ["", "japan", "hongkong", "europe", "china", "korea", "other"];
-const FILTER_AUDIENCE: [&str; 6] = ["", "shaonv", "shaonian", "qingnian", "ertong", "tongyong"];
-const FILTER_YEAR: [&str; 21] = [
-	"", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015",
-	"2014", "2013", "2012", "2011", "2010", "200x", "199x", "198x", "197x",
-];
-const FILTER_END: [&str; 3] = ["", "0", "1"];
 const FILTER_SORT: [&str; 3] = ["", "update", "views"];
 
+#[derive(Deserialize)]
+struct ChapterJson {
+	id: String,
+	title: String,
+}
+
 fn extract_chapter_number(title: &str) -> Option<f32> {
-	let re = Regex::new(r"(?:第\s*)(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:话|話|章|回|卷|册|冊)").unwrap();
+	let re = Regex::new(
+		r"(?:第\s*)(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:话|話|章|回|卷|册|冊)",
+	)
+	.unwrap();
 	if let Some(captures) = re.captures(title) {
 		let num_match = captures.get(1).or_else(|| captures.get(2));
 		if let Some(num_match) = num_match {
@@ -81,295 +37,288 @@ fn extract_chapter_number(title: &str) -> Option<f32> {
 	None
 }
 
-#[get_manga_list]
-fn get_manga_list(filters: Vec<Filter>, page: i32) -> Result<MangaPageResult> {
-	let mut query = String::new();
-	let mut tag = String::new();
-	let mut country = String::new();
-	let mut audience = String::new();
-	let mut year = String::new();
-	let mut end = String::new();
-	let mut sort = String::new();
+struct MycomicSource;
 
-	for filter in filters {
-		match filter.kind {
-			FilterType::Title => {
-				query = filter.value.as_string()?.read();
-			}
-			FilterType::Select => {
-				let index = filter.value.as_int()? as usize;
-				match filter.name.as_str() {
-					"类型" => {
-						tag = FILTER_TAG[index].to_string();
+impl Source for MycomicSource {
+	fn new() -> Self {
+		Self
+	}
+
+	fn get_search_manga_list(
+		&self,
+		query: Option<String>,
+		page: i32,
+		filters: Vec<FilterValue>,
+	) -> Result<MangaPageResult> {
+		let mut tag = String::new();
+		let mut country = String::new();
+		let mut audience = String::new();
+		let mut year = String::new();
+		let mut end = String::new();
+		let mut sort = String::new();
+
+		for filter in filters {
+			match filter {
+				FilterValue::Select { id, value } => match id.as_str() {
+					"tag" => tag = value,
+					"country" => country = value,
+					"audience" => audience = value,
+					"year" => year = value,
+					"end" => end = value,
+					_ => {}
+				},
+				FilterValue::Sort {
+					id, index, ascending,
+				} => {
+					if id == "sort" {
+						if let Some(s) = FILTER_SORT.get(index as usize) {
+							sort = s.to_string();
+						}
+						if sort.is_empty() && ascending {
+							sort = String::from("time");
+						} else if !sort.is_empty() && !ascending {
+							sort = format!("-{}", sort);
+						}
 					}
-					"地区" => {
-						country = FILTER_COUNTRY[index].to_string();
-					}
-					"受众" => {
-						audience = FILTER_AUDIENCE[index].to_string();
-					}
-					"年份" => {
-						year = FILTER_YEAR[index].to_string();
-					}
-					"进度" => {
-						end = FILTER_END[index].to_string();
-					}
-					_ => continue,
 				}
+				_ => {}
 			}
-			FilterType::Sort => {
-				let value = match filter.value.as_object() {
-					Ok(value) => value,
-					Err(_) => continue,
-				};
-				let index = value.get("index").as_int()? as usize;
-				let ascending = value.get("ascending").as_bool()?;
-				sort = FILTER_SORT[index].to_string();
+		}
 
-				if sort.is_empty() && ascending {
-					sort.push_str("time");
-				} else if !sort.is_empty() && !ascending {
-					sort = format!("-{}", sort)
-				}
+		let url = if let Some(query) = query {
+			format!(
+				"{}/comics?q={}&page={}",
+				WWW_URL,
+				encode_uri(query),
+				page
+			)
+		} else {
+			format!(
+				"{}/comics?filter[tag]={}&filter[country]={}&filter[audience]={}&filter[year]={}&filter[end]={}&sort={}&page={}",
+				WWW_URL, tag, country, audience, year, end, sort, page
+			)
+		};
+
+		let html = Request::get(&url)?.html()?;
+		let mut entries: Vec<Manga> = Vec::new();
+
+		if let Some(items) = html.select(".group") {
+			for item in items {
+				let key = item
+					.select_first("a")
+					.and_then(|e| e.attr("href"))
+					.unwrap_or_default()
+					.split('/')
+					.filter(|a| !a.is_empty())
+					.map(|a| a.to_string())
+					.collect::<Vec<String>>()
+					.pop()
+					.unwrap_or_default();
+				let img = item.select_first("a>img");
+				let cover = img
+					.as_ref()
+					.and_then(|e| e.attr("data-src"))
+					.or_else(|| img.as_ref().and_then(|e| e.attr("src")));
+				let title = img
+					.as_ref()
+					.and_then(|e| e.attr("alt"))
+					.unwrap_or_default();
+				entries.push(Manga {
+					key,
+					title,
+					cover,
+					..Default::default()
+				});
 			}
-			_ => continue,
 		}
-	}
 
-	let url = if query.is_empty() {
-		format!(
-			"{}/comics?filter[tag]={}&filter[country]={}&filter[audience]={}&filter[year]={}&filter[end]={}&sort={}&page={}",
-			WWW_URL,
-			tag,
-			country,
-			audience,
-			year,
-			end,
-			sort,
-			page
-		)
-	} else {
-		format!(
-			"{}/comics?q={}&page={}",
-			WWW_URL,
-			encode_uri(query.clone()),
-			page
-		)
-	};
-	let html = Request::new(url, HttpMethod::Get).html()?;
-	let has_more = true;
-	let mut mangas: Vec<Manga> = Vec::new();
-
-	for item in html.select(".group").array() {
-		let item = match item.as_node() {
-			Ok(node) => node,
-			Err(_) => continue,
-		};
-		let id = item
-			.select("a")
-			.attr("href")
-			.read()
-			.split("/")
-			.map(|a| a.to_string())
-			.filter(|a| !a.is_empty())
-			.collect::<Vec<String>>()
-			.pop()
-			.unwrap();
-		let img = item.select("a>img");
-		let mut cover = img.attr("data-src").read();
-		if cover.is_empty() {
-			cover = img.attr("src").read();
-		}
-		let title = img.attr("alt").read();
-		mangas.push(Manga {
-			id,
-			cover,
-			title,
-			..Default::default()
-		});
-	}
-
-	Ok(MangaPageResult {
-		manga: mangas,
-		has_more,
-	})
-}
-
-#[get_manga_details]
-fn get_manga_details(id: String) -> Result<Manga> {
-	let url = format!("{}/comics/{}", WWW_URL, id.clone());
-	let html = Request::new(url.clone(), HttpMethod::Get).html()?;
-	let cdn_url = html.select("body[x-data]").attr("x-data").read();
-	let cdn_base = if let Some(start) = cdn_url.find("cdnUrl: '") {
-		if let Some(end) = cdn_url[start + 9..].find("'") {
-			format!("https://{}", &cdn_url[start + 9..start + 9 + end])
-		} else {
-			"https://biccam.com".to_string()
-		}
-	} else {
-		"https://biccam.com".to_string()
-	};
-
-	let mut cover = html.select("meta[name='og:image']").attr("content").read();
-	if cover.is_empty() {
-		cover = html.select("img.object-cover").attr("src").read();
-	}
-	if !cover.is_empty() && !cover.starts_with("http") {
-		if cover.starts_with("//") {
-			cover = format!("https:{}", cover);
-		} else if cover.starts_with("/") {
-			cover = format!("{}{}", cdn_base, cover);
-		}
-	}
-	let title = html
-		.select("title")
-		.text()
-		.read()
-		.replace(" - MYCOMIC - 我的漫画", "");
-	let author = html.select("meta[name='author']").attr("content").read();
-	let artist = String::new();
-	let mut description = html
-		.select("div[x-show='show']")
-		.text()
-		.read()
-		.trim()
-		.to_string();
-	if description.is_empty() {
-		description = html
-			.select("meta[name='description']")
-			.attr("content")
-			.read()
-			.trim()
-			.to_string();
-	}
-	let categories = html
-		.select("a[href*='tag']")
-		.array()
-		.map(|a| a.as_node().unwrap().text().read())
-		.collect::<Vec<String>>();
-	let status = match html.select("div[data-flux-badge]").text().read().trim() {
-		"连载中" => MangaStatus::Ongoing,
-		"已完结" => MangaStatus::Completed,
-		_ => MangaStatus::Unknown,
-	};
-	let nsfw = MangaContentRating::Safe;
-	let viewer = MangaViewer::Rtl;
-
-	Ok(Manga {
-		id,
-		cover,
-		title,
-		author,
-		artist,
-		description,
-		url,
-		categories,
-		status,
-		nsfw,
-		viewer,
-	})
-}
-
-#[get_chapter_list]
-fn get_chapter_list(id: String) -> Result<Vec<Chapter>> {
-	let url = format!("{}/comics/{}", WWW_URL, id.clone());
-	let html = Request::new(url.clone(), HttpMethod::Get).html()?;
-	let mut all_chapters: Vec<Chapter> = Vec::new();
-
-	for element in html.select("div[x-data*='chapters']").array() {
-		let element = match element.as_node() {
-			Ok(node) => node,
-			Err(_) => continue,
-		};
-
-		let scanlator = element
-			.select("div[data-flux-subheading] div")
-			.first()
-			.text()
-			.read()
-			.trim()
-			.to_string();
-
-		let data = element.attr("x-data").read();
-		let mut text = match data.substring_after("chapters:") {
-			Some(t) => t,
-			None => continue,
-		};
-		text = match text.substring_before("],") {
-			Some(t) => t,
-			None => continue,
-		};
-		let text = text.trim().to_string() + "]";
-		let data = match json::parse(&text) {
-			Ok(d) => d,
-			Err(_) => continue,
-		};
-		let list = match data.as_array() {
-			Ok(l) => l,
-			Err(_) => continue,
-		};
-		let len = list.len();
-
-		for (index, item) in list.enumerate() {
-			let item = match item.as_object() {
-				Ok(item) => item,
-				Err(_) => continue,
-			};
-			let chapter_id = item.get("id").as_int().unwrap().to_string();
-			let title = item.get("title").as_string().unwrap().read();
-
-			let chapter_num = (len - index) as f32;
-			let chapter_or_volume = extract_chapter_number(&title).unwrap_or(chapter_num);
-			let (ch, vo) = if title.trim().ends_with('卷') {
-				(-1.0, chapter_or_volume)
-			} else {
-				(chapter_or_volume, -1.0)
-			};
-
-			let chapter_url = format!("{}/chapters/{}", WWW_URL, chapter_id);
-			all_chapters.push(Chapter {
-				id: chapter_id,
-				title,
-				volume: vo,
-				chapter: ch,
-				url: chapter_url,
-				scanlator: scanlator.clone(),
-				..Default::default()
-			});
-		}
-	}
-
-	Ok(all_chapters)
-}
-
-#[get_page_list]
-fn get_page_list(_: String, chapter_id: String) -> Result<Vec<Page>> {
-	let url = format!("{}/chapters/{}", WWW_URL, chapter_id.clone());
-	let html = Request::new(url.clone(), HttpMethod::Get).html()?;
-	let mut pages: Vec<Page> = Vec::new();
-
-	for (index, item) in html.select("img.page").array().enumerate() {
-		let item = match item.as_node() {
-			Ok(node) => node,
-			Err(_) => continue,
-		};
-		let index = index as i32;
-		let url = if item.has_attr("data-src") {
-			item.attr("data-src").read()
-		} else {
-			item.attr("src").read()
-		};
-		pages.push(Page {
-			index,
-			url,
-			..Default::default()
+		Ok(MangaPageResult {
+			has_next_page: !entries.is_empty(),
+			entries,
 		})
 	}
 
-	Ok(pages)
+	fn get_manga_update(
+		&self,
+		mut manga: Manga,
+		needs_details: bool,
+		needs_chapters: bool,
+	) -> Result<Manga> {
+		let url = format!("{}/comics/{}", WWW_URL, manga.key);
+		let html = Request::get(&url)?.html()?;
+
+		if needs_details {
+			let cdn_url = html
+				.select_first("body[x-data]")
+				.and_then(|e| e.attr("x-data"))
+				.unwrap_or_default();
+			let cdn_base = cdn_url
+				.split_once("cdnUrl: '")
+				.and_then(|(_, after)| after.split_once("'"))
+				.map(|(before, _)| format!("https://{}", before))
+				.unwrap_or_else(|| String::from("https://biccam.com"));
+
+			let mut cover = html
+				.select_first("meta[name='og:image']")
+				.and_then(|e| e.attr("content"))
+				.unwrap_or_default();
+			if cover.is_empty() {
+				cover = html
+					.select_first("img.object-cover")
+					.and_then(|e| e.attr("src"))
+					.unwrap_or_default();
+			}
+			if !cover.is_empty() && !cover.starts_with("http") {
+				if cover.starts_with("//") {
+					cover = format!("https:{}", cover);
+				} else if cover.starts_with('/') {
+					cover = format!("{}{}", cdn_base, cover);
+				}
+			}
+			manga.cover = Some(cover);
+
+			manga.title = html
+				.select_first("title")
+				.and_then(|e| e.text())
+				.unwrap_or_default()
+				.replace(" - MYCOMIC - 我的漫画", "");
+
+			let author = html
+				.select_first("meta[name='author']")
+				.and_then(|e| e.attr("content"))
+				.unwrap_or_default();
+			manga.authors = Some(aidoku::alloc::vec![author]);
+
+			let mut description = html
+				.select_first("div[x-show='show']")
+				.and_then(|e| e.text())
+				.map(|s| s.trim().to_string())
+				.unwrap_or_default();
+			if description.is_empty() {
+				description = html
+					.select_first("meta[name='description']")
+					.and_then(|e| e.attr("content"))
+					.map(|s| s.trim().to_string())
+					.unwrap_or_default();
+			}
+			manga.description = Some(description);
+
+			let mut tags = Vec::new();
+			if let Some(tag_elements) = html.select("a[href*='tag']") {
+				for el in tag_elements {
+					if let Some(t) = el.text() {
+						tags.push(t);
+					}
+				}
+			}
+			manga.tags = Some(tags);
+
+			manga.status = html
+				.select_first("div[data-flux-badge]")
+				.and_then(|e| e.text())
+				.map(|s| match s.trim() {
+					"连载中" => MangaStatus::Ongoing,
+					"已完结" => MangaStatus::Completed,
+					_ => MangaStatus::Unknown,
+				})
+				.unwrap_or(MangaStatus::Unknown);
+			manga.content_rating = ContentRating::Safe;
+			manga.viewer = Viewer::RightToLeft;
+			manga.url = Some(url);
+		}
+
+		if needs_chapters {
+			let mut all_chapters: Vec<Chapter> = Vec::new();
+
+			if let Some(elements) = html.select("div[x-data*='chapters']") {
+				for element in elements {
+					let scanlator = element
+						.select_first("div[data-flux-subheading] div")
+						.and_then(|e| e.text())
+						.map(|s| s.trim().to_string())
+						.unwrap_or_default();
+
+					let data = element.attr("x-data").unwrap_or_default();
+					let text = data
+						.split_once("chapters:")
+						.and_then(|(_, after)| after.split_once("],"))
+						.map(|(before, _)| {
+							let mut s = before.trim().to_string();
+							s.push(']');
+							s
+						});
+
+					let text = match text {
+						Some(t) => t,
+						None => continue,
+					};
+
+					let list: Vec<ChapterJson> = match serde_json::from_str(&text) {
+						Ok(l) => l,
+						Err(_) => continue,
+					};
+					let len = list.len();
+
+					for (index, item) in list.iter().enumerate() {
+						let chapter_num = (len - index) as f32;
+						let chapter_or_volume =
+							extract_chapter_number(&item.title).unwrap_or(chapter_num);
+						let (ch, vo) = if item.title.trim().ends_with('卷') {
+							(-1.0, chapter_or_volume)
+						} else {
+							(chapter_or_volume, -1.0)
+						};
+
+						all_chapters.push(Chapter {
+							key: item.id.clone(),
+							title: Some(item.title.clone()),
+							volume_number: Some(vo),
+							chapter_number: Some(ch),
+							url: Some(format!("{}/chapters/{}", WWW_URL, item.id)),
+							scanlators: Some(aidoku::alloc::vec![scanlator.clone()]),
+							..Default::default()
+						});
+					}
+				}
+			}
+
+			manga.chapters = Some(all_chapters);
+		}
+
+		Ok(manga)
+	}
+
+	fn get_page_list(&self, _manga: Manga, chapter: Chapter) -> Result<Vec<Page>> {
+		let url = format!("{}/chapters/{}", WWW_URL, chapter.key);
+		let html = Request::get(&url)?.html()?;
+		let mut pages: Vec<Page> = Vec::new();
+
+		if let Some(items) = html.select("img.page") {
+			for item in items {
+				let img_url = if item.has_attr("data-src") {
+					item.attr("data-src").unwrap_or_default()
+				} else {
+					item.attr("src").unwrap_or_default()
+				};
+				pages.push(Page {
+					content: PageContent::url(img_url),
+					..Default::default()
+				});
+			}
+		}
+
+		Ok(pages)
+	}
 }
 
-#[modify_image_request]
-fn modify_image_request(request: Request) {
-	request.header("Referer", WWW_URL);
+impl ImageRequestProvider for MycomicSource {
+	fn get_image_request(
+		&self,
+		url: String,
+		_context: Option<aidoku::PageContext>,
+	) -> Result<Request> {
+		Ok(Request::get(&url)?.header("Referer", WWW_URL))
+	}
 }
+
+register_source!(MycomicSource, ImageRequestProvider);

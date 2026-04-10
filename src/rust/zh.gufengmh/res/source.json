@@ -2,7 +2,7 @@
   "info": {
     "id": "zh.gufengmh",
     "name": "古风漫画",
-    "version": 3,
+    "version": 4,
     "url": "https://www.gufengmh.com",
     "languages": [
       "zh"
@@ -10,6 +10,7 @@
     "contentRating": 0
   },
   "listings": [
+    "全部",
     "总人气榜",
     "日人气榜",
     "周人气榜",

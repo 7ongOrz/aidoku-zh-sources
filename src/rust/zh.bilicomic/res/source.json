@@ -2,7 +2,7 @@
   "info": {
     "id": "zh.bilicomic",
     "name": "哔哩漫画",
-    "version": 4,
+    "version": 6,
     "url": "https://www.bilimanga.net",
     "languages": [
       "zh"
@@ -10,6 +10,7 @@
     "contentRating": 0
   },
   "listings": [
+    "全部",
     "月点击榜",
     "周点击榜",
     "月推荐榜",

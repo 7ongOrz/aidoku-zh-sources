@@ -1,10 +1,6 @@
 [
   {
-    "type": "text", "id": "title"
-  },
-  {
     "type": "select",
-    "name": "题材",
     "options": [
       "全部",
       "霸总",
@@ -30,36 +26,66 @@
       "励志",
       "同人",
       "真人"
-    ]
+    ],
+    "title": "题材",
+    "id": "theme"
   },
   {
     "type": "select",
-    "name": "进度",
-    "options": ["全部", "连载", "完结"]
+    "options": [
+      "全部",
+      "连载",
+      "完结"
+    ],
+    "title": "进度",
+    "id": "finish"
   },
   {
     "type": "select",
-    "name": "受众",
-    "options": ["全部", "少年", "少女", "青年", "少儿"]
+    "options": [
+      "全部",
+      "少年",
+      "少女",
+      "青年",
+      "少儿"
+    ],
+    "title": "受众",
+    "id": "audience"
   },
   {
     "type": "select",
-    "name": "版权",
-    "options": ["全部", "独家", "合作"]
+    "options": [
+      "全部",
+      "独家",
+      "合作"
+    ],
+    "title": "版权",
+    "id": "copyright"
   },
   {
     "type": "select",
-    "name": "资费",
-    "options": ["全部", "免费", "付费", "VIP"]
+    "options": [
+      "全部",
+      "免费",
+      "付费",
+      "VIP"
+    ],
+    "title": "资费",
+    "id": "free"
   },
   {
     "type": "sort",
-    "name": "排序",
     "canAscend": false,
-    "options": ["推荐", "最热", "最新"],
+    "options": [
+      "推荐",
+      "最热",
+      "最新"
+    ],
     "default": {
       "index": 0,
       "ascending": false
-    }
+    },
+    "title": "排序",
+    "id": "order"
   }
 ]

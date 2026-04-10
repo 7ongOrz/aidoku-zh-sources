@@ -1,75 +1,72 @@
 use aidoku::{
-	helpers::substring::Substring,
-	prelude::*,
-	std::{
+	alloc::String,
+	imports::{
 		defaults::defaults_get,
 		net::{HttpMethod, Request},
-		ObjectRef, String,
 	},
+	prelude::*,
+	Result,
 };
-use alloc::string::ToString;
-
+use aidoku::alloc::string::ToString;
 const WWW_URL: &str = "https://komiic.com";
 const API_URL: &str = "https://komiic.com/api/query";
 
-pub fn gen_manga_url(id: String) -> String {
+pub fn gen_manga_url(id: &str) -> String {
 	format!("{}/comic/{}", WWW_URL, id)
 }
 
-pub fn gen_chapter_url(manga_id: String, chapter_id: String) -> String {
+pub fn gen_chapter_url(manga_id: &str, chapter_id: &str) -> String {
 	format!(
 		"{}/comic/{}/chapter/{}/images/all",
 		WWW_URL, manga_id, chapter_id
 	)
 }
 
-pub fn gen_page_url(manga_id: String, chapter_id: String, page_id: String) -> String {
+pub fn gen_page_url(manga_id: &str, chapter_id: &str, page_id: &str) -> String {
 	format!(
 		"{}/api/image/{}?mangaId={}&chapterId={}",
 		WWW_URL, page_id, manga_id, chapter_id
 	)
 }
 
-pub fn gen_referer(image_url: String) -> String {
+pub fn gen_referer(image_url: &str) -> String {
 	if image_url.starts_with(WWW_URL) {
-		let query = image_url.substring_after("?").unwrap();
-		let manga_id = query
-			.substring_after("mangaId=")
-			.unwrap()
-			.substring_before("&")
-			.unwrap()
-			.to_string();
-		let chapter_id = query.substring_after("chapterId=").unwrap().to_string();
-		gen_chapter_url(manga_id, chapter_id)
+		if let Some((_, query)) = image_url.split_once('?') {
+			let manga_id = query
+				.split_once("mangaId=")
+				.and_then(|(_, after)| after.split_once('&'))
+				.map(|(before, _)| before)
+				.unwrap_or("");
+			let chapter_id = query
+				.split_once("chapterId=")
+				.map(|(_, after)| after)
+				.unwrap_or("");
+			gen_chapter_url(manga_id, chapter_id)
+		} else {
+			WWW_URL.to_string()
+		}
 	} else {
 		WWW_URL.to_string()
 	}
 }
 
-pub fn get_json(body: String) -> ObjectRef {
-	let mut request = Request::new(API_URL, HttpMethod::Post)
+pub fn get_json<T: serde::de::DeserializeOwned>(body: &str) -> Result<T> {
+	let mut request = Request::new(API_URL, HttpMethod::Post)?
 		.body(body.as_bytes())
 		.header("Content-Type", "application/json");
 
-	let cookie = defaults_get("cookie")
-        .and_then(|v| v.as_string())
-        .map(|s| s.read())
-        .unwrap_or_default();
+	let cookie = defaults_get::<String>("cookie").unwrap_or_default();
 	if !cookie.is_empty() {
 		request = request.header("Cookie", &cookie);
 	}
 
-	request
-		.json()
-		.unwrap()
-		.as_object()
-		.unwrap()
+	request.json_owned()
 }
 
 pub fn gen_category_body_string(
-	category: String,
-	status: String,
-	order_by: String,
+	category: &str,
+	status: &str,
+	order_by: &str,
 	page: i32,
 ) -> String {
 	let category_id = if category.is_empty() {
@@ -119,7 +116,7 @@ pub fn gen_recent_update_body_string(page: i32) -> String {
 	)
 }
 
-pub fn gen_hot_body_string(order_by: String, page: i32) -> String {
+pub fn gen_hot_body_string(order_by: &str, page: i32) -> String {
 	format!(
 		r#"{{
       "operationName": "hotComics",
@@ -140,7 +137,7 @@ pub fn gen_hot_body_string(order_by: String, page: i32) -> String {
 	)
 }
 
-pub fn gen_search_body_string(query: String) -> String {
+pub fn gen_search_body_string(query: &str) -> String {
 	format!(
 		r#"{{
       "operationName": "searchComicAndAuthorQuery",
@@ -153,7 +150,7 @@ pub fn gen_search_body_string(query: String) -> String {
 	)
 }
 
-pub fn gen_id_body_string(id: String) -> String {
+pub fn gen_id_body_string(id: &str) -> String {
 	format!(
 		r#"{{
       "operationName": "comicById",
@@ -166,7 +163,7 @@ pub fn gen_id_body_string(id: String) -> String {
 	)
 }
 
-pub fn gen_chapter_body_string(id: String) -> String {
+pub fn gen_chapter_body_string(id: &str) -> String {
 	format!(
 		r#"{{
       "operationName": "chapterByComicId",
@@ -179,7 +176,7 @@ pub fn gen_chapter_body_string(id: String) -> String {
 	)
 }
 
-pub fn gen_images_body_string(id: String) -> String {
+pub fn gen_images_body_string(id: &str) -> String {
 	format!(
 		r#"{{
       "operationName": "imagesByChapterId",
