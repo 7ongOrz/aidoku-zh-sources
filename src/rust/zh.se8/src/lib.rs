@@ -22,7 +22,7 @@ struct ChapterResponse {
 
 #[derive(Deserialize)]
 struct ChapterData {
-	id: i64,
+	id: String,
 	name: String,
 	link: String,
 }
@@ -204,7 +204,7 @@ impl Source for Se8Source {
 					.replace("&hellip;", "…")
 					.replace("&hearts;", "♥");
 				chapters.push(Chapter {
-					key: format!("{}", item.id),
+					key: item.id.clone(),
 					title: Some(title),
 					chapter_number: Some((index + 1) as f32),
 					url: Some(item.link.clone()),
