@@ -13,37 +13,6 @@ use serde::Deserialize;
 const WWW_URL: &str = "https://www.baozimh.com";
 const IMG_URL: &str = "https://static-tw.baozimh.com";
 
-const FILTER_CATEGORY: [&str; 26] = [
-	"all",
-	"lianai",
-	"chunai",
-	"gufeng",
-	"yineng",
-	"xuanyi",
-	"juqing",
-	"kehuan",
-	"qihuan",
-	"xuanhuan",
-	"chuanyue",
-	"maoxian",
-	"tuili",
-	"wuxia",
-	"gedou",
-	"zhanzheng",
-	"rexie",
-	"gaoxiao",
-	"danuzhu",
-	"dushi",
-	"zongcai",
-	"hougong",
-	"richang",
-	"hanman",
-	"shaonian",
-	"qita",
-];
-const FILTER_REGION: [&str; 5] = ["all", "cn", "jp", "kr", "en"];
-const FILTER_STATUS: [&str; 3] = ["all", "serial", "pub"];
-
 #[derive(Deserialize)]
 struct ListResponse {
 	items: Vec<ListItem>,
@@ -69,23 +38,16 @@ impl Source for BaozimhSource {
 		page: i32,
 		filters: Vec<FilterValue>,
 	) -> Result<MangaPageResult> {
-		let mut category = String::new();
-		let mut region = String::new();
-		let mut status = String::new();
+		let mut category = String::from("all");
+		let mut region = String::from("all");
+		let mut status = String::from("all");
 
 		for filter in filters {
 			if let FilterValue::Select { id, value } = filter {
-				let index = value.parse::<usize>().unwrap_or(0);
 				match id.as_str() {
-					"category" => {
-						category = FILTER_CATEGORY[index].to_string();
-					}
-					"region" => {
-						region = FILTER_REGION[index].to_string();
-					}
-					"status" => {
-						status = FILTER_STATUS[index].to_string();
-					}
+					"category" => category = value,
+					"region" => region = value,
+					"status" => status = value,
 					_ => {}
 				}
 			}

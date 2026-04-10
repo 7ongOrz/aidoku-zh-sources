@@ -1,6 +1,8 @@
 [
   {
     "type": "select",
+    "title": "题材",
+    "id": "theme",
     "options": [
       "全部",
       "霸总",
@@ -27,21 +29,52 @@
       "同人",
       "真人"
     ],
-    "title": "题材",
-    "id": "theme"
+    "ids": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "23",
+      "24",
+      "26"
+    ]
   },
   {
     "type": "select",
+    "title": "进度",
+    "id": "finish",
     "options": [
       "全部",
       "连载",
       "完结"
     ],
-    "title": "进度",
-    "id": "finish"
+    "ids": [
+      "",
+      "1",
+      "2"
+    ]
   },
   {
     "type": "select",
+    "title": "受众",
+    "id": "audience",
     "options": [
       "全部",
       "少年",
@@ -49,32 +82,50 @@
       "青年",
       "少儿"
     ],
-    "title": "受众",
-    "id": "audience"
+    "ids": [
+      "",
+      "1",
+      "2",
+      "3",
+      "4"
+    ]
   },
   {
     "type": "select",
+    "title": "版权",
+    "id": "copyright",
     "options": [
       "全部",
       "独家",
       "合作"
     ],
-    "title": "版权",
-    "id": "copyright"
+    "ids": [
+      "",
+      "1",
+      "2"
+    ]
   },
   {
     "type": "select",
+    "title": "资费",
+    "id": "free",
     "options": [
       "全部",
       "免费",
       "付费",
       "VIP"
     ],
-    "title": "资费",
-    "id": "free"
+    "ids": [
+      "",
+      "is_free=1",
+      "is_fee=1",
+      "is_vip=1"
+    ]
   },
   {
     "type": "sort",
+    "title": "排序",
+    "id": "order",
     "canAscend": false,
     "options": [
       "推荐",
@@ -84,8 +135,6 @@
     "default": {
       "index": 0,
       "ascending": false
-    },
-    "title": "排序",
-    "id": "order"
+    }
   }
 ]

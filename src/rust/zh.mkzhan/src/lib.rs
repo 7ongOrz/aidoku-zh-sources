@@ -16,14 +16,6 @@ use serde::Deserialize;
 const WWW_URL: &str = "https://www.mkzhan.com";
 const API_URL: &str = "https://comic.mkzcdn.com";
 
-const FILTER_THEME: [&str; 24] = [
-	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "12", "13", "14", "15", "16", "17",
-	"18", "19", "20", "21", "23", "24", "26",
-];
-const FILTER_FINISH: [&str; 3] = ["", "1", "2"];
-const FILTER_AUDIENCE: [&str; 5] = ["", "1", "2", "3", "4"];
-const FILTER_COPYRIGHT: [&str; 3] = ["", "1", "2"];
-const FILTER_FREE: [&str; 4] = ["", "is_free=1", "is_fee=1", "is_vip=1"];
 const FILTER_ORDER: [&str; 3] = ["3", "1", "2"];
 
 #[derive(Deserialize)]
@@ -108,41 +100,11 @@ impl Source for MkzhanSource {
 		for filter in filters {
 			match filter {
 				FilterValue::Select { id, value } => match id.as_str() {
-					"theme" => {
-						if let Ok(index) = value.parse::<usize>() {
-							if let Some(s) = FILTER_THEME.get(index) {
-								theme_id = s.to_string();
-							}
-						}
-					}
-					"finish" => {
-						if let Ok(index) = value.parse::<usize>() {
-							if let Some(s) = FILTER_FINISH.get(index) {
-								finish = s.to_string();
-							}
-						}
-					}
-					"audience" => {
-						if let Ok(index) = value.parse::<usize>() {
-							if let Some(s) = FILTER_AUDIENCE.get(index) {
-								audience = s.to_string();
-							}
-						}
-					}
-					"copyright" => {
-						if let Ok(index) = value.parse::<usize>() {
-							if let Some(s) = FILTER_COPYRIGHT.get(index) {
-								copyright = s.to_string();
-							}
-						}
-					}
-					"free" => {
-						if let Ok(index) = value.parse::<usize>() {
-							if let Some(s) = FILTER_FREE.get(index) {
-								free = s.to_string();
-							}
-						}
-					}
+					"theme" => theme_id = value,
+					"finish" => finish = value,
+					"audience" => audience = value,
+					"copyright" => copyright = value,
+					"free" => free = value,
 					_ => {}
 				},
 				FilterValue::Sort { id, index, .. } => {

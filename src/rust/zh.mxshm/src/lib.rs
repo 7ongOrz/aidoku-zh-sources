@@ -14,15 +14,8 @@ use aidoku::alloc::string::ToString;
 
 const UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
-const FILTER_TAG: [&str; 23] = [
-	"全部", "青春", "性感", "长腿", "多人", "御姐", "巨乳", "新婚", "媳妇", "暧昧", "清纯", "调教",
-	"少妇", "风骚", "同居", "淫乱", "好友", "女神", "诱惑", "偷情", "出轨", "正妹", "家教",
-];
-const FILTER_AREA: [&str; 4] = ["-1", "1", "2", "3"];
-const FILTER_END: [&str; 3] = ["-1", "0", "1"];
-
 fn get_url() -> String {
-	defaults_get::<String>("url").unwrap_or_else(|| String::from("https://www.mxs13.cc"))
+	defaults_get::<String>("url").unwrap_or_else(|| String::from("https://www.jjmh.top"))
 }
 
 struct MxshmSource;
@@ -39,22 +32,15 @@ impl Source for MxshmSource {
 		filters: Vec<FilterValue>,
 	) -> Result<MangaPageResult> {
 		let mut tag = String::new();
-		let mut area = String::new();
-		let mut end = String::new();
+		let mut area = String::from("-1");
+		let mut end = String::from("-1");
 
 		for filter in filters {
 			if let FilterValue::Select { id, value } = filter {
-				let index = value.parse::<usize>().unwrap_or(0);
 				match id.as_str() {
-					"tag" => {
-						tag = FILTER_TAG[index].to_string();
-					}
-					"area" => {
-						area = FILTER_AREA[index].to_string();
-					}
-					"end" => {
-						end = FILTER_END[index].to_string();
-					}
+					"tag" => tag = value,
+					"area" => area = value,
+					"end" => end = value,
 					_ => {}
 				}
 			}

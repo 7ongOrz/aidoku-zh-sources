@@ -19,12 +19,6 @@ use parser::{
 	ImagesByChapterIdData, RecentUpdateData, SearchData,
 };
 
-const FILTER_CATEGORY: [&str; 38] = [
-	"", "1", "3", "4", "5", "6", "7", "8", "10", "11", "2", "12", "13", "14", "15", "16", "17",
-	"18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "9", "28", "31", "32", "33", "34",
-	"35", "36", "37", "40", "42",
-];
-const FILTER_STATUS: [&str; 3] = ["", "ONGOING", "END"];
 const FILTER_ORDER_BY: [&str; 3] = ["DATE_UPDATED", "VIEWS", "FAVORITE_COUNT"];
 
 struct KomiicSource;
@@ -46,18 +40,11 @@ impl Source for KomiicSource {
 
 		for filter in filters {
 			match filter {
-				FilterValue::Select { id, value } => {
-					let index = value.parse::<usize>().unwrap_or(0);
-					match id.as_str() {
-						"category" => {
-							category = FILTER_CATEGORY.get(index).unwrap_or(&"").to_string();
-						}
-						"status" => {
-							status = FILTER_STATUS.get(index).unwrap_or(&"").to_string();
-						}
-						_ => {}
-					}
-				}
+				FilterValue::Select { id, value } => match id.as_str() {
+					"category" => category = value,
+					"status" => status = value,
+					_ => {}
+				},
 				FilterValue::Sort { id, index, .. } => {
 					if id == "order" {
 						order_by = FILTER_ORDER_BY

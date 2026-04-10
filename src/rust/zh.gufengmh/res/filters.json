@@ -1,6 +1,8 @@
 [
   {
     "type": "select",
+    "title": "类型",
+    "id": "genre",
     "options": [
       "全部",
       "少年漫画",
@@ -8,11 +10,18 @@
       "青年漫画",
       "真人漫画"
     ],
-    "title": "类型",
-    "id": "genre"
+    "ids": [
+      "",
+      "shaonian",
+      "shaonv",
+      "qingnian",
+      "zhenrenmanhua"
+    ]
   },
   {
     "type": "select",
+    "title": "地区",
+    "id": "region",
     "options": [
       "全部",
       "日本漫画",
@@ -21,21 +30,34 @@
       "欧美漫画",
       "韩国漫画"
     ],
-    "title": "地区",
-    "id": "region"
+    "ids": [
+      "",
+      "ribenmanhua",
+      "guochanmanhua",
+      "gangtaimanhua",
+      "oumeimanhua",
+      "hanguomanhua"
+    ]
   },
   {
     "type": "select",
+    "title": "进度",
+    "id": "status",
     "options": [
       "全部",
       "已完结",
       "连载中"
     ],
-    "title": "进度",
-    "id": "status"
+    "ids": [
+      "",
+      "wanjie",
+      "lianzai"
+    ]
   },
   {
     "type": "sort",
+    "title": "排序",
+    "id": "sort",
     "canAscend": true,
     "options": [
       "按发布排序",
@@ -45,8 +67,6 @@
     "default": {
       "index": 2,
       "ascending": false
-    },
-    "title": "排序",
-    "id": "sort"
+    }
   }
 ]

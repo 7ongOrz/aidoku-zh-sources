@@ -12,12 +12,6 @@ use serde::Deserialize;
 
 mod helper;
 
-const FILTER_CATEGORY_ID: [&str; 15] = [
-	"", "1", "15", "32", "6", "13", "28", "31", "22", "23", "26", "29", "34", "35", "36",
-];
-const FILTER_JINDU: [&str; 3] = ["", "0", "1"];
-const FILTER_SHUXING: [&str; 4] = ["", "一半中文一半生肉", "全生肉", "全中文"];
-const FILTER_AREA: [&str; 2] = ["", "日本"];
 const FILTER_ODFIE: [&str; 2] = ["addtime", "edittime"];
 
 #[derive(Deserialize)]
@@ -48,34 +42,10 @@ impl Source for ZerobywnsSource {
 		for filter in filters {
 			match filter {
 				FilterValue::Select { id, value } => match id.as_str() {
-					"category" => {
-						if let Ok(index) = value.parse::<usize>() {
-							if let Some(s) = FILTER_CATEGORY_ID.get(index) {
-								category_id = s.to_string();
-							}
-						}
-					}
-					"jindu" => {
-						if let Ok(index) = value.parse::<usize>() {
-							if let Some(s) = FILTER_JINDU.get(index) {
-								jindu = s.to_string();
-							}
-						}
-					}
-					"shuxing" => {
-						if let Ok(index) = value.parse::<usize>() {
-							if let Some(s) = FILTER_SHUXING.get(index) {
-								shuxing = s.to_string();
-							}
-						}
-					}
-					"area" => {
-						if let Ok(index) = value.parse::<usize>() {
-							if let Some(s) = FILTER_AREA.get(index) {
-								area = s.to_string();
-							}
-						}
-					}
+					"category" => category_id = value,
+					"jindu" => jindu = value,
+					"shuxing" => shuxing = value,
+					"area" => area = value,
 					_ => {}
 				},
 				FilterValue::Sort { id, index, ascending } => {

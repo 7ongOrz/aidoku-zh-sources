@@ -12,16 +12,6 @@ use aidoku::alloc::string::ToString;
 const WWW_URL: &str = "https://www.gufengmh.com";
 const IMG_URL: &str = "https://res1.xiaoqinre.com";
 
-const FILTER_GENRE: [&str; 5] = ["", "shaonian", "shaonv", "qingnian", "zhenrenmanhua"];
-const FILTER_REGION: [&str; 6] = [
-	"",
-	"ribenmanhua",
-	"guochanmanhua",
-	"gangtaimanhua",
-	"oumeimanhua",
-	"hanguomanhua",
-];
-const FILTER_STATUS: [&str; 3] = ["", "wanjie", "lianzai"];
 const FILTER_SORT: [&str; 3] = ["post", "update", "click"];
 
 struct GufengmhSource;
@@ -44,21 +34,12 @@ impl Source for GufengmhSource {
 
 		for filter in filters {
 			match filter {
-				FilterValue::Select { id, value } => {
-					let index = value.parse::<usize>().unwrap_or(0);
-					match id.as_str() {
-						"genre" => {
-							genre = FILTER_GENRE[index].to_string();
-						}
-						"region" => {
-							region = FILTER_REGION[index].to_string();
-						}
-						"status" => {
-							status = FILTER_STATUS[index].to_string();
-						}
-						_ => {}
-					}
-				}
+				FilterValue::Select { id, value } => match id.as_str() {
+					"genre" => genre = value,
+					"region" => region = value,
+					"status" => status = value,
+					_ => {}
+				},
 				FilterValue::Sort { id, index, ascending } => {
 					if id == "sort" {
 						if let Some(s) = FILTER_SORT.get(index as usize) {

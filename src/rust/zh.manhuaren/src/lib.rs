@@ -12,11 +12,6 @@ mod parser;
 
 use parser::{ApiResponse, PageResponse};
 
-const FILTER_CATEGORY: [&str; 30] = [
-	"0", "31", "26", "1", "3", "27", "5", "2", "6", "8", "9", "25", "10", "11", "12", "17", "33",
-	"37", "14", "15", "29", "20", "21", "4", "7", "30", "34", "36", "40", "61",
-];
-const FILTER_STATUS: [&str; 3] = ["0", "1", "2"];
 const FILTER_SORT: [&str; 3] = ["0", "1", "2"];
 
 struct ManhuarenSource;
@@ -38,18 +33,11 @@ impl Source for ManhuarenSource {
 
 		for filter in filters {
 			match filter {
-				FilterValue::Select { id, value } => {
-					let index = value.parse::<usize>().unwrap_or(0);
-					match id.as_str() {
-						"category" => {
-							category = FILTER_CATEGORY.get(index).unwrap_or(&"0").to_string();
-						}
-						"status" => {
-							status = FILTER_STATUS.get(index).unwrap_or(&"0").to_string();
-						}
-						_ => {}
-					}
-				}
+				FilterValue::Select { id, value } => match id.as_str() {
+					"category" => category = value,
+					"status" => status = value,
+					_ => {}
+				},
 				FilterValue::Sort { id, index, .. } => {
 					if id == "sort" {
 						sort = FILTER_SORT

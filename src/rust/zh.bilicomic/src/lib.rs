@@ -13,17 +13,6 @@ use regex::Regex;
 const BASE_URL: &str = "https://www.bilimanga.net";
 const UA: &str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
 
-const FILTER_TAGID: [&str; 66] = [
-	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
-	"17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32",
-	"33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48",
-	"49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64",
-	"65",
-];
-const FILTER_SORTID: [&str; 13] = [
-	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
-];
-const FILTER_RGROUPID: [&str; 6] = ["0", "1", "2", "3", "4", "5"];
 const FILTER_ORDER: [&str; 10] = [
 	"weekvisit",
 	"monthvisit",
@@ -36,10 +25,6 @@ const FILTER_ORDER: [&str; 10] = [
 	"lastupdate",
 	"postdate",
 ];
-const FILTER_ANIME: [&str; 3] = ["0", "1", "2"];
-const FILTER_QUALITY: [&str; 3] = ["0", "1", "2"];
-const FILTER_ISFULL: [&str; 3] = ["0", "1", "2"];
-const FILTER_UPDATE: [&str; 5] = ["0", "1", "2", "3", "4"];
 
 fn gen_request(url: &str) -> Result<Request> {
 	Ok(Request::get(url)?
@@ -135,33 +120,16 @@ impl Source for BilicomicSource {
 
 		for filter in filters {
 			match filter {
-				FilterValue::Select { id, value } => {
-					let index = value.parse::<usize>().unwrap_or(0);
-					match id.as_str() {
-						"tagid" => {
-							tagid = FILTER_TAGID.get(index).unwrap_or(&"0").to_string();
-						}
-						"sortid" => {
-							sortid = FILTER_SORTID.get(index).unwrap_or(&"0").to_string();
-						}
-						"rgroupid" => {
-							rgroupid = FILTER_RGROUPID.get(index).unwrap_or(&"0").to_string();
-						}
-						"anime" => {
-							anime = FILTER_ANIME.get(index).unwrap_or(&"0").to_string();
-						}
-						"quality" => {
-							quality = FILTER_QUALITY.get(index).unwrap_or(&"0").to_string();
-						}
-						"isfull" => {
-							isfull = FILTER_ISFULL.get(index).unwrap_or(&"0").to_string();
-						}
-						"update" => {
-							update = FILTER_UPDATE.get(index).unwrap_or(&"0").to_string();
-						}
-						_ => {}
-					}
-				}
+				FilterValue::Select { id, value } => match id.as_str() {
+					"tagid" => tagid = value,
+					"sortid" => sortid = value,
+					"rgroupid" => rgroupid = value,
+					"anime" => anime = value,
+					"quality" => quality = value,
+					"isfull" => isfull = value,
+					"update" => update = value,
+					_ => {}
+				},
 				FilterValue::Sort { id, index, .. } => {
 					if id == "order" {
 						order = FILTER_ORDER

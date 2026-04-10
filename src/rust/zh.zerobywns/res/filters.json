@@ -1,6 +1,8 @@
 [
   {
     "type": "select",
+    "title": "分类",
+    "id": "category",
     "options": [
       "全部",
       "卖肉",
@@ -18,41 +20,73 @@
       "职业",
       "汉化组跟上，不再更新"
     ],
-    "title": "分类",
-    "id": "category"
+    "ids": [
+      "",
+      "1",
+      "15",
+      "32",
+      "6",
+      "13",
+      "28",
+      "31",
+      "22",
+      "23",
+      "26",
+      "29",
+      "34",
+      "35",
+      "36"
+    ]
   },
   {
     "type": "select",
+    "title": "进度",
+    "id": "jindu",
     "options": [
       "全部",
       "连载中",
       "已完结"
     ],
-    "title": "进度",
-    "id": "jindu"
+    "ids": [
+      "",
+      "0",
+      "1"
+    ]
   },
   {
     "type": "select",
+    "title": "性质",
+    "id": "shuxing",
     "options": [
       "全部",
       "一半中文一半生肉",
       "全生肉",
       "全中文"
     ],
-    "title": "性质",
-    "id": "shuxing"
+    "ids": [
+      "",
+      "一半中文一半生肉",
+      "全生肉",
+      "全中文"
+    ]
   },
   {
     "type": "select",
+    "title": "地区",
+    "id": "area",
     "options": [
       "全部",
       "日本"
     ],
-    "title": "地区",
-    "id": "area"
+    "ids": [
+      "",
+      "日本"
+    ]
   },
   {
     "type": "sort",
+    "title": "排序",
+    "id": "sort",
     "canAscend": true,
     "options": [
       "上架时间",
@@ -61,8 +95,6 @@
     "default": {
       "index": 0,
       "ascending": false
-    },
-    "title": "排序",
-    "id": "sort"
+    }
   }
 ]
