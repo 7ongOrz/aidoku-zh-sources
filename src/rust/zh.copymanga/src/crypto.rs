@@ -5,7 +5,7 @@ use aes::{
 	},
 	Aes128,
 };
-use aidoku::std::Vec;
+use aidoku::alloc::Vec;
 use cbc::Decryptor;
 
 type Aes128CbcDec = Decryptor<Aes128>;

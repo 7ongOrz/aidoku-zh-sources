@@ -1,10 +1,12 @@
 [
   {
-    "type": "text", "id": "title"
+    "type": "text",
+    "id": "title"
   },
   {
     "type": "select",
-    "name": "题材",
+    "title": "题材",
+    "id": "theme",
     "options": [
       "全部",
       "爱情",
@@ -67,18 +69,97 @@
       "无修正",
       "仙侠",
       "LoveLive"
+    ],
+    "ids": [
+      "",
+      "aiqing",
+      "huanlexiang",
+      "maoxian",
+      "qihuan",
+      "baihe",
+      "xiaoyuan",
+      "kehuan",
+      "dongfang",
+      "danmei",
+      "shenghuo",
+      "gedou",
+      "qingxiaoshuo",
+      "xuanyi",
+      "qita",
+      "shengui",
+      "zhichang",
+      "mengxi",
+      "teenslove",
+      "zhiyu",
+      "changtiao",
+      "sige",
+      "jiecao",
+      "jianniang",
+      "jingji",
+      "gaoxiao",
+      "weiniang",
+      "rexue",
+      "lizhi",
+      "hougong",
+      "meishi",
+      "xingzhuanhuan",
+      "zhentan",
+      "COLOR",
+      "aa",
+      "yinyuewudao",
+      "yishijie",
+      "zhanzheng",
+      "lishi",
+      "jingsong",
+      "jizhan",
+      "mohuan",
+      "dushi",
+      "chuanyue",
+      "kongbu",
+      "comiket100",
+      "chongsheng",
+      "comiket99",
+      "comiket97",
+      "comiket101",
+      "comiket96",
+      "zhaixi",
+      "wuxia",
+      "shengcun",
+      "C98",
+      "comiket95",
+      "fate",
+      "zhuansheng",
+      "Uncensored",
+      "xianxia",
+      "loveLive"
     ]
   },
   {
     "type": "select",
-    "name": "地区",
-    "options": ["全部", "日漫", "韩漫", "美漫"]
+    "title": "地区",
+    "id": "country",
+    "options": [
+      "全部",
+      "日漫",
+      "韩漫",
+      "美漫"
+    ],
+    "ids": [
+      "",
+      "japan",
+      "korea",
+      "west"
+    ]
   },
   {
     "type": "sort",
-    "name": "排序",
+    "title": "排序",
+    "id": "sort",
     "canAscend": true,
-    "options": ["热门", "更新时间"],
+    "options": [
+      "热门",
+      "更新时间"
+    ],
     "default": {
       "index": 0,
       "ascending": false

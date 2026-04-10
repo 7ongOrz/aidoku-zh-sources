@@ -16,7 +16,9 @@ strip = true
 lto = true
 
 [dependencies]
-aidoku = { git = "https://github.com/Aidoku/aidoku-rs", branch = "legacy", features = ["helpers"] }
+aidoku = { git = "https://github.com/Aidoku/aidoku-rs", features = ["helpers", "json"] }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 aes = { version = "0.8.2", default-features = false }
 cbc = { version = "0.1.2", features = ["alloc"] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
