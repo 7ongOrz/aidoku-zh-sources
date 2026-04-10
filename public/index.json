@@ -28,9 +28,9 @@
     {
       "id": "zh.baozimh1",
       "name": "包子漫画1",
-      "version": 5,
-      "iconURL": "icons/zh.baozimh1-v5.png",
-      "downloadURL": "sources/zh.baozimh1-v5.aix",
+      "version": 6,
+      "iconURL": "icons/zh.baozimh1-v6.png",
+      "downloadURL": "sources/zh.baozimh1-v6.aix",
       "languages": [
         "zh"
       ],
@@ -52,9 +52,9 @@
     {
       "id": "zh.bilicomic",
       "name": "哔哩漫画",
-      "version": 4,
-      "iconURL": "icons/zh.bilicomic-v4.png",
-      "downloadURL": "sources/zh.bilicomic-v4.aix",
+      "version": 6,
+      "iconURL": "icons/zh.bilicomic-v6.png",
+      "downloadURL": "sources/zh.bilicomic-v6.aix",
       "languages": [
         "zh"
       ],
@@ -64,9 +64,9 @@
     {
       "id": "zh.cartoonmad",
       "name": "动漫狂",
-      "version": 2,
-      "iconURL": "icons/zh.cartoonmad-v2.png",
-      "downloadURL": "sources/zh.cartoonmad-v2.aix",
+      "version": 3,
+      "iconURL": "icons/zh.cartoonmad-v3.png",
+      "downloadURL": "sources/zh.cartoonmad-v3.aix",
       "languages": [
         "zh"
       ],
@@ -100,9 +100,9 @@
     {
       "id": "zh.gufengmh",
       "name": "古风漫画",
-      "version": 3,
-      "iconURL": "icons/zh.gufengmh-v3.png",
-      "downloadURL": "sources/zh.gufengmh-v3.aix",
+      "version": 4,
+      "iconURL": "icons/zh.gufengmh-v4.png",
+      "downloadURL": "sources/zh.gufengmh-v4.aix",
       "languages": [
         "zh"
       ],
@@ -124,9 +124,9 @@
     {
       "id": "zh.happymh",
       "name": "嗨皮漫画",
-      "version": 1,
-      "iconURL": "icons/zh.happymh-v1.png",
-      "downloadURL": "sources/zh.happymh-v1.aix",
+      "version": 3,
+      "iconURL": "icons/zh.happymh-v3.png",
+      "downloadURL": "sources/zh.happymh-v3.aix",
       "languages": [
         "zh"
       ],
@@ -148,9 +148,9 @@
     {
       "id": "zh.komiic",
       "name": "Komiic漫画",
-      "version": 3,
-      "iconURL": "icons/zh.komiic-v3.png",
-      "downloadURL": "sources/zh.komiic-v3.aix",
+      "version": 5,
+      "iconURL": "icons/zh.komiic-v5.png",
+      "downloadURL": "sources/zh.komiic-v5.aix",
       "languages": [
         "zh"
       ],
@@ -184,9 +184,9 @@
     {
       "id": "zh.manhuaren",
       "name": "漫画人",
-      "version": 2,
-      "iconURL": "icons/zh.manhuaren-v2.png",
-      "downloadURL": "sources/zh.manhuaren-v2.aix",
+      "version": 4,
+      "iconURL": "icons/zh.manhuaren-v4.png",
+      "downloadURL": "sources/zh.manhuaren-v4.aix",
       "languages": [
         "zh"
       ],
@@ -196,9 +196,9 @@
     {
       "id": "zh.mkzhan",
       "name": "漫客栈",
-      "version": 1,
-      "iconURL": "icons/zh.mkzhan-v1.png",
-      "downloadURL": "sources/zh.mkzhan-v1.aix",
+      "version": 2,
+      "iconURL": "icons/zh.mkzhan-v2.png",
+      "downloadURL": "sources/zh.mkzhan-v2.aix",
       "languages": [
         "zh"
       ],
@@ -208,9 +208,9 @@
     {
       "id": "zh.msxhm",
       "name": "漫小肆韩漫",
-      "version": 6,
-      "iconURL": "icons/zh.msxhm-v6.png",
-      "downloadURL": "sources/zh.msxhm-v6.aix",
+      "version": 7,
+      "iconURL": "icons/zh.msxhm-v7.png",
+      "downloadURL": "sources/zh.msxhm-v7.aix",
       "languages": [
         "zh"
       ],
@@ -220,9 +220,9 @@
     {
       "id": "zh.mycomic",
       "name": "MYCOMIC",
-      "version": 2,
-      "iconURL": "icons/zh.mycomic-v2.png",
-      "downloadURL": "sources/zh.mycomic-v2.aix",
+      "version": 3,
+      "iconURL": "icons/zh.mycomic-v3.png",
+      "downloadURL": "sources/zh.mycomic-v3.aix",
       "languages": [
         "zh"
       ],
@@ -232,9 +232,9 @@
     {
       "id": "zh.noy1",
       "name": "NoyAcg",
-      "version": 3,
-      "iconURL": "icons/zh.noy1-v3.png",
-      "downloadURL": "sources/zh.noy1-v3.aix",
+      "version": 4,
+      "iconURL": "icons/zh.noy1-v4.png",
+      "downloadURL": "sources/zh.noy1-v4.aix",
       "languages": [
         "zh"
       ],
@@ -280,9 +280,9 @@
     {
       "id": "zh.zaimanhua",
       "name": "再漫画",
-      "version": 1,
-      "iconURL": "icons/zh.zaimanhua-v1.png",
-      "downloadURL": "sources/zh.zaimanhua-v1.aix",
+      "version": 2,
+      "iconURL": "icons/zh.zaimanhua-v2.png",
+      "downloadURL": "sources/zh.zaimanhua-v2.aix",
       "languages": [
         "zh"
       ],
@@ -292,9 +292,9 @@
     {
       "id": "zh.zerobywns",
       "name": "zero搬运网",
-      "version": 8,
-      "iconURL": "icons/zh.zerobywns-v8.png",
-      "downloadURL": "sources/zh.zerobywns-v8.aix",
+      "version": 9,
+      "iconURL": "icons/zh.zerobywns-v9.png",
+      "downloadURL": "sources/zh.zerobywns-v9.aix",
       "languages": [
         "zh"
       ],
