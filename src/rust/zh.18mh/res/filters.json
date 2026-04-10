@@ -5,6 +5,8 @@
   },
   {
     "type": "select",
+    "title": "类型",
+    "id": "category",
     "options": [
       "全部",
       "韩漫",
@@ -25,7 +27,25 @@
       "反转",
       "熟女"
     ],
-    "title": "类型",
-    "id": "__"
+    "ids": [
+      "",
+      "hanman",
+      "zhenrenxiezhen",
+      "riman",
+      "aixiezhen",
+      "duoren",
+      "yuwang",
+      "zhengmei",
+      "tongju",
+      "nxuesheng",
+      "juqing",
+      "touqing",
+      "xiaoyuan",
+      "nixi",
+      "bangongshi",
+      "youhuo",
+      "fanzhuan",
+      "shun"
+    ]
   }
 ]
