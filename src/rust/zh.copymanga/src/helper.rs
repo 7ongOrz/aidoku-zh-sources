@@ -21,6 +21,7 @@ const VERSION: &str = "2025.08.15";
 const PLATFORM: &str = "1";
 
 const KEY_TOKEN: &str = "copymanga_token";
+const KEY_TOKEN_OWNER: &str = "copymanga_token_owner";
 const KEY_ANON_USERNAME: &str = "copymanga_anon_username";
 const KEY_ANON_PASSWORD: &str = "copymanga_anon_password";
 
@@ -97,7 +98,7 @@ pub fn get_json_authed<T: DeserializeOwned>(url: &str) -> Result<T> {
 	}
 
 	if code == 210 || code == 401 {
-		clear_token();
+		clear_auth();
 		let token = ensure_token()?;
 		let authorization = format!("Token {}", token);
 		let data = new_get(url)?
@@ -123,20 +124,43 @@ fn clear_token() {
 	defaults_set(KEY_TOKEN, DefaultValue::String(String::new()));
 }
 
+fn clear_anon_account() {
+	defaults_set(KEY_ANON_USERNAME, DefaultValue::String(String::new()));
+	defaults_set(KEY_ANON_PASSWORD, DefaultValue::String(String::new()));
+}
+
+/// 鉴权失败时调用：清 token，若当前用的是匿名账号则一并清掉（让 ensure_token 注册新的）
+fn clear_auth() {
+	clear_token();
+	let user_name = defaults_get::<String>("username").unwrap_or_default();
+	let user_pass = defaults_get::<String>("password").unwrap_or_default();
+	if user_name.is_empty() || user_pass.is_empty() {
+		clear_anon_account();
+	}
+}
+
 /// 确保有可用 token：优先 settings 账号 → 持久化的匿名账号 → 新注册匿名账号
 pub fn ensure_token() -> Result<String> {
+	let user_name = defaults_get::<String>("username").unwrap_or_default();
+	let user_pass = defaults_get::<String>("password").unwrap_or_default();
+	let has_user_account = !user_name.is_empty() && !user_pass.is_empty();
+
+	// 账号变更检测：settings username 和 token 来源不一致时清 token
+	let owner = defaults_get::<String>(KEY_TOKEN_OWNER).unwrap_or_default();
+	if owner != user_name {
+		clear_token();
+	}
+
 	if let Some(cached) = defaults_get::<String>(KEY_TOKEN) {
 		if !cached.is_empty() {
 			return Ok(cached);
 		}
 	}
 
-	// 用户自填账号
-	let user_name = defaults_get::<String>("username").unwrap_or_default();
-	let user_pass = defaults_get::<String>("password").unwrap_or_default();
-	if !user_name.is_empty() && !user_pass.is_empty() {
+	if has_user_account {
 		let token = login(&user_name, &user_pass)?;
 		defaults_set(KEY_TOKEN, DefaultValue::String(token.clone()));
+		defaults_set(KEY_TOKEN_OWNER, DefaultValue::String(user_name));
 		return Ok(token);
 	}
 
@@ -146,6 +170,7 @@ pub fn ensure_token() -> Result<String> {
 	if !anon_name.is_empty() && !anon_pass.is_empty() {
 		if let Ok(token) = login(&anon_name, &anon_pass) {
 			defaults_set(KEY_TOKEN, DefaultValue::String(token.clone()));
+			defaults_set(KEY_TOKEN_OWNER, DefaultValue::String(String::new()));
 			return Ok(token);
 		}
 	}
@@ -157,6 +182,7 @@ pub fn ensure_token() -> Result<String> {
 	defaults_set(KEY_ANON_USERNAME, DefaultValue::String(username));
 	defaults_set(KEY_ANON_PASSWORD, DefaultValue::String(password));
 	defaults_set(KEY_TOKEN, DefaultValue::String(token.clone()));
+	defaults_set(KEY_TOKEN_OWNER, DefaultValue::String(String::new()));
 	Ok(token)
 }
 
