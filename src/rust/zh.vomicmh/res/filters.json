@@ -1,5 +1,6 @@
 [
   {
-    "type": "text", "id": "title"
+    "type": "text",
+    "id": "title"
   }
 ]

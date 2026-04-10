@@ -1,6 +1,7 @@
 [
   {
-    "type": "text", "id": "title"
+    "type": "text",
+    "id": "title"
   },
   {
     "type": "select",
@@ -92,7 +93,10 @@
     "type": "sort",
     "name": "排序",
     "canAscend": false,
-    "options": ["热门人气", "更新时间"],
+    "options": [
+      "热门人气",
+      "更新时间"
+    ],
     "default": {
       "index": 0,
       "ascending": false

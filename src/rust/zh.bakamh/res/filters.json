@@ -7,7 +7,15 @@
     "type": "select",
     "title": "进度",
     "id": "finish",
-    "options": ["全部", "连载", "完结"],
-    "ids": ["", "on-going", "end"]
+    "options": [
+      "全部",
+      "连载",
+      "完结"
+    ],
+    "ids": [
+      "",
+      "on-going",
+      "end"
+    ]
   }
 ]
