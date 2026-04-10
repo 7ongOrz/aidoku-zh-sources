@@ -3,7 +3,8 @@ use aidoku::{
 	alloc::{String, Vec},
 	imports::net::Request,
 	prelude::*,
-	Chapter, FilterValue, ImageRequestProvider, Manga, MangaPageResult, Page, Result, Source,
+	Chapter, FilterValue, ImageRequestProvider, Listing, ListingProvider, Manga, MangaPageResult,
+	Page, Result, Source,
 };
 use aidoku::alloc::string::ToString;
 
@@ -106,6 +107,12 @@ impl Source for ManhuarenSource {
 	}
 }
 
+impl ListingProvider for ManhuarenSource {
+	fn get_manga_list(&self, _listing: Listing, page: i32) -> Result<MangaPageResult> {
+		self.get_search_manga_list(None, page, Vec::new())
+	}
+}
+
 impl ImageRequestProvider for ManhuarenSource {
 	fn get_image_request(
 		&self,
@@ -120,4 +127,4 @@ impl ImageRequestProvider for ManhuarenSource {
 	}
 }
 
-register_source!(ManhuarenSource, ImageRequestProvider);
+register_source!(ManhuarenSource, ListingProvider, ImageRequestProvider);

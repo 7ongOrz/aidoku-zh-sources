@@ -42,7 +42,7 @@ struct MangaChapters {
 
 #[derive(Deserialize)]
 struct ApiChapter {
-	id: i64,
+	id: String,
 	attributes: ApiChapterAttributes,
 }
 
@@ -217,7 +217,7 @@ impl Source for GodamangaSource {
 			for (index, item) in data.data.chapters.into_iter().enumerate() {
 				let chapter_url = format!("{}/manga/{}/{}", WWW_URL, manga_id, item.attributes.slug);
 				chapters.push(Chapter {
-					key: item.id.to_string(),
+					key: item.id,
 					title: Some(item.attributes.title),
 					chapter_number: Some((index + 1) as f32),
 					url: Some(chapter_url),
