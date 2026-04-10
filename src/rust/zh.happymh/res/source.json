@@ -2,7 +2,7 @@
   "info": {
     "id": "zh.happymh",
     "name": "嗨皮漫画",
-    "version": 1,
+    "version": 3,
     "url": "https://m.happymh.com",
     "languages": [
       "zh"
@@ -10,6 +10,7 @@
     "contentRating": 0
   },
   "listings": [
+    "全部",
     "日阅读",
     "日收藏",
     "周阅读",
