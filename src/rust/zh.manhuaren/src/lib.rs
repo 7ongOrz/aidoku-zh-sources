@@ -109,8 +109,23 @@ impl Source for ManhuarenSource {
 }
 
 impl ListingProvider for ManhuarenSource {
-	fn get_manga_list(&self, _listing: Listing, page: i32) -> Result<MangaPageResult> {
-		self.get_search_manga_list(None, page, Vec::new())
+	fn get_manga_list(&self, listing: Listing, page: i32) -> Result<MangaPageResult> {
+		let sort = match listing.id.as_str() {
+			"最热门" => "10",
+			"最近更新" => "2",
+			"最新上架" => "18",
+			_ => return self.get_search_manga_list(None, page, Vec::new()),
+		};
+		let body = format!(
+			"action=getclasscomics&pageindex={}&pagesize=21&categoryid=0&tagid=0&status=0&usergroup=0&pay=-1&areaid=0&sort={}&iscopyright=0",
+			page, sort
+		);
+		let resp: ListingResponse = helper::post_json(&body)?;
+		let entries = parser::parse_listing(&resp.items);
+		Ok(MangaPageResult {
+			has_next_page: !entries.is_empty(),
+			entries,
+		})
 	}
 }
 
