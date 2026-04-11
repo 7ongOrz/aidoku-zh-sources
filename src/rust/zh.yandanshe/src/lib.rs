@@ -11,7 +11,7 @@ use aidoku::alloc::string::ToString;
 
 mod helper;
 
-use helper::{ApiResponse, BASE_URL, UA};
+use helper::{BookItem, BASE_URL, UA};
 
 struct YandansheSource;
 
@@ -32,9 +32,8 @@ fn build_body(page: i32, key: &str, paixu: &str, status: &str, category: &str) -
 	body
 }
 
-fn parse_listing(resp: &ApiResponse) -> MangaPageResult {
-	let entries: Vec<Manga> = resp
-		.info
+fn parse_listing(items: &[BookItem]) -> MangaPageResult {
+	let entries: Vec<Manga> = items
 		.iter()
 		.map(|item| Manga {
 			key: item.id.clone(),
@@ -76,8 +75,8 @@ impl Source for YandansheSource {
 		let key = query.as_deref().unwrap_or("");
 		let paixu = if key.is_empty() { "3" } else { "" };
 		let body = build_body(page, key, paixu, &status, &category);
-		let resp = helper::search_manga(&body)?;
-		Ok(parse_listing(&resp))
+		let items = helper::search_manga(&body)?;
+		Ok(parse_listing(&items))
 	}
 
 	fn get_manga_update(
@@ -163,8 +162,8 @@ impl ListingProvider for YandansheSource {
 			_ => return self.get_search_manga_list(None, page, Vec::new()),
 		};
 		let body = build_body(page, "", paixu, "", "");
-		let resp = helper::search_manga(&body)?;
-		Ok(parse_listing(&resp))
+		let items = helper::search_manga(&body)?;
+		Ok(parse_listing(&items))
 	}
 }
 

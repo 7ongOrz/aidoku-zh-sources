@@ -23,8 +23,18 @@ type Aes256CbcDec = cbc::Decryptor<Aes256>;
 // ---------- API ----------
 
 #[derive(Deserialize)]
-pub struct ApiResponse {
-	pub info: Vec<BookItem>,
+#[serde(untagged)]
+enum InfoField {
+	Items(Vec<BookItem>),
+	#[allow(dead_code)]
+	Message(String),
+}
+
+#[derive(Deserialize)]
+struct RawApiResponse {
+	#[serde(default)]
+	status: i32,
+	info: InfoField,
 }
 
 #[derive(Deserialize)]
@@ -49,8 +59,13 @@ fn ajax_post<T: serde::de::DeserializeOwned>(url: &str, body: &str) -> Result<T>
 		.json_owned()
 }
 
-pub fn search_manga(body: &str) -> Result<ApiResponse> {
-	ajax_post(&format!("{}/index.php?m=&c=mh&a=load_searchpage", BASE_URL), body)
+pub fn search_manga(body: &str) -> Result<Vec<BookItem>> {
+	let resp: RawApiResponse =
+		ajax_post(&format!("{}/index.php?m=&c=mh&a=load_searchpage", BASE_URL), body)?;
+	match resp.info {
+		InfoField::Items(items) if resp.status == 1 => Ok(items),
+		_ => Ok(Vec::new()),
+	}
 }
 
 pub fn get_html(url: &str) -> Result<Document> {
