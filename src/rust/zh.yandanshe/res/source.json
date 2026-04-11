@@ -2,11 +2,17 @@
   "info": {
     "id": "zh.yandanshe",
     "name": "言耽社",
-    "version": 2,
-    "url": "https://yandanshe.com",
+    "version": 3,
+    "url": "https://yandanshe.net",
     "languages": [
       "zh"
     ],
     "contentRating": 2
-  }
+  },
+  "listings": [
+    "全部",
+    "人气",
+    "新作",
+    "更新"
+  ]
 }
