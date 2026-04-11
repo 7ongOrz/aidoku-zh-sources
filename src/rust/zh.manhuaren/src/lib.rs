@@ -11,7 +11,7 @@ use aidoku::alloc::string::ToString;
 mod helper;
 mod parser;
 
-use parser::{ListingResponse, SearchItem};
+use parser::ListingResponse;
 
 const FILTER_SORT: [&str; 3] = ["10", "2", "18"];
 
@@ -29,8 +29,8 @@ impl Source for ManhuarenSource {
 		filters: Vec<FilterValue>,
 	) -> Result<MangaPageResult> {
 		if let Some(ref q) = query {
-			let items: Vec<SearchItem> = helper::search_json(q)?;
-			let entries = parser::parse_search(&items);
+			let html = helper::search_html(q)?;
+			let entries = parser::parse_search(&html);
 			Ok(MangaPageResult {
 				has_next_page: false,
 				entries,

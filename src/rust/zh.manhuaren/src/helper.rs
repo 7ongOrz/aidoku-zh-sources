@@ -22,13 +22,13 @@ pub fn post_json<T: serde::de::DeserializeOwned>(body: &str) -> Result<T> {
 		.json_owned()
 }
 
-pub fn search_json<T: serde::de::DeserializeOwned>(query: &str) -> Result<T> {
+pub fn search_html(query: &str) -> Result<Document> {
 	let url = format!(
-		"{}/search.ashx?d=1&t={}&language=1&isremovehtml=1",
+		"{}/search?title={}&language=1",
 		BASE_URL,
 		encode_uri(query.to_string())
 	);
-	Request::get(&url)?.header("User-Agent", UA).json_owned()
+	get_html(&url)
 }
 
 pub fn get_html(url: &str) -> Result<Document> {

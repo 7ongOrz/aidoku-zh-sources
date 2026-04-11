@@ -34,14 +34,6 @@ pub struct ComicItem {
 	pub status: i32,
 }
 
-// search.ashx response
-#[derive(Deserialize)]
-pub struct SearchItem {
-	#[serde(rename = "Title", default)]
-	pub title: String,
-	#[serde(rename = "Url", default)]
-	pub url: String,
-}
 
 pub fn parse_listing(items: &[ComicItem]) -> Vec<Manga> {
 	items
@@ -74,13 +66,37 @@ pub fn parse_listing(items: &[ComicItem]) -> Vec<Manga> {
 		.collect()
 }
 
-pub fn parse_search(items: &[SearchItem]) -> Vec<Manga> {
+pub fn parse_search(html: &Document) -> Vec<Manga> {
+	let items = match html.select(".book-list li") {
+		Some(list) => list,
+		None => return Vec::new(),
+	};
 	items
-		.iter()
-		.map(|item| Manga {
-			key: item.url.clone(),
-			title: item.title.clone(),
-			..Default::default()
+		.filter_map(|item| {
+			let href = item
+				.select_first(".book-list-cover a")
+				.and_then(|a| a.attr("href"))?;
+			let key = href.trim_matches('/').to_string();
+			if key.is_empty() {
+				return None;
+			}
+			let title = item
+				.select_first(".book-list-info-title")
+				.and_then(|e| e.text())
+				.unwrap_or_default();
+			let cover = item
+				.select_first(".book-list-cover-img")
+				.and_then(|e| e.attr("src"));
+			let description = item
+				.select_first(".book-list-info-desc")
+				.and_then(|e| e.text());
+			Some(Manga {
+				key,
+				title,
+				cover,
+				description,
+				..Default::default()
+			})
 		})
 		.collect()
 }
