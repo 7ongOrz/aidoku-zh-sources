@@ -21,7 +21,18 @@ fn handle_cookie_header(cookie_header: &str) -> String {
 }
 
 pub fn get_url() -> String {
-	defaults_get::<String>("url").unwrap_or_default()
+	let url = defaults_get::<String>("url").unwrap_or_default();
+	let url = url.trim_end_matches('/');
+	if url.is_empty()
+		|| url == "http://www.zerobywav.com"
+		|| url == "https://www.zerobywav.com"
+		|| url == "https://zerobyw.github.io"
+	{
+		let new_url = String::from("https://www.zerobywai.com");
+		defaults_set("url", DefaultValue::String(new_url.clone()));
+		return new_url;
+	}
+	String::from(url)
 }
 
 pub fn get_html(url: &str) -> Result<Document> {
