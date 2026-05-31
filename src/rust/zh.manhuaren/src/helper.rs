@@ -1,6 +1,6 @@
 use aidoku::{
 	alloc::{String, Vec},
-	helpers::uri::encode_uri,
+	helpers::uri::encode_uri_component,
 	imports::{
 		html::Document,
 		net::{HttpMethod, Request},
@@ -8,8 +8,6 @@ use aidoku::{
 	prelude::*,
 	Result,
 };
-use aidoku::alloc::string::ToString;
-
 const BASE_URL: &str = "https://www.manhuaren.com";
 pub const UA: &str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1";
 
@@ -23,12 +21,23 @@ pub fn post_json<T: serde::de::DeserializeOwned>(body: &str) -> Result<T> {
 }
 
 pub fn search_html(query: &str) -> Result<Document> {
-	let url = format!(
-		"{}/search?title={}&language=1",
-		BASE_URL,
-		encode_uri(query.to_string())
+	get_html(&search_url(query))
+}
+
+pub fn search_page<T: serde::de::DeserializeOwned>(query: &str, page: i32) -> Result<T> {
+	let url = format!("{}/pagerdata.ashx?d=1", BASE_URL);
+	let referer = search_url(query);
+	let body = format!(
+		"t=7&pageindex={}&f=0&title={}",
+		page,
+		encode_uri_component(query)
 	);
-	get_html(&url)
+	Request::new(&url, HttpMethod::Post)?
+		.header("User-Agent", UA)
+		.header("Content-Type", "application/x-www-form-urlencoded")
+		.header("Referer", &referer)
+		.body(body.as_bytes())
+		.json_owned()
 }
 
 pub fn get_html(url: &str) -> Result<Document> {
@@ -45,6 +54,14 @@ pub fn manga_url(slug: &str) -> String {
 
 pub fn chapter_url(key: &str) -> String {
 	format!("{}/{}/", BASE_URL, key)
+}
+
+fn search_url(query: &str) -> String {
+	format!(
+		"{}/search?title={}&language=1",
+		BASE_URL,
+		encode_uri_component(query)
+	)
 }
 
 // Dean Edwards JavaScript unpacker — extract image URLs from packed eval script

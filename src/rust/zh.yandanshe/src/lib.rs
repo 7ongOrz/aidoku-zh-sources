@@ -5,7 +5,7 @@ use aidoku::{
 	imports::net::Request,
 	prelude::*,
 	Chapter, ContentRating, FilterValue, ImageRequestProvider, Listing, ListingProvider, Manga,
-	MangaPageResult, MangaStatus, Page, PageContent, Result, Source, Viewer,
+	MangaPageResult, MangaStatus, Page, PageContent, PageContext, Result, Source, Viewer,
 };
 use aidoku::alloc::string::ToString;
 
@@ -146,7 +146,11 @@ impl Source for YandansheSource {
 		Ok(urls
 			.into_iter()
 			.map(|u| Page {
-				content: PageContent::url(u),
+				content: PageContent::url_context(u, {
+					let mut context = PageContext::new();
+					context.insert(String::from("referer"), url.clone());
+					context
+				}),
 				..Default::default()
 			})
 			.collect())
@@ -171,8 +175,14 @@ impl ImageRequestProvider for YandansheSource {
 	fn get_image_request(
 		&self,
 		url: String,
-		_context: Option<aidoku::PageContext>,
+		context: Option<aidoku::PageContext>,
 	) -> Result<Request> {
+		if let Some(referer) = context.and_then(|ctx| ctx.get("referer").cloned()) {
+			return Ok(Request::get(&url)?
+				.header("User-Agent", UA)
+				.header("Referer", &referer));
+		}
+
 		// Image URL patterns:
 		//   Cover:   img.yidanmh.xyz/bookimage/{book_id}/{file}
 		//   Chapter: img.yidanmh.xyz/bookimage/{book_id}/{chapter_id}/{file}

@@ -29,10 +29,15 @@ impl Source for ManhuarenSource {
 		filters: Vec<FilterValue>,
 	) -> Result<MangaPageResult> {
 		if let Some(ref q) = query {
-			let html = helper::search_html(q)?;
-			let entries = parser::parse_search(&html);
+			let entries = if page <= 1 {
+				let html = helper::search_html(q)?;
+				parser::parse_search(&html)
+			} else {
+				let items: Vec<parser::SearchPageItem> = helper::search_page(q, page)?;
+				parser::parse_search_page(&items)
+			};
 			Ok(MangaPageResult {
-				has_next_page: false,
+				has_next_page: !entries.is_empty(),
 				entries,
 			})
 		} else {

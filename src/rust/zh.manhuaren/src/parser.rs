@@ -34,6 +34,24 @@ pub struct ComicItem {
 	pub status: i32,
 }
 
+// pagerdata.ashx search continuation response
+#[derive(Deserialize)]
+pub struct SearchPageItem {
+	#[serde(rename = "Url", default)]
+	pub url: String,
+	#[serde(rename = "Title", default)]
+	pub title: String,
+	#[serde(rename = "Pic", default)]
+	pub pic: String,
+	#[serde(rename = "BigPic", default)]
+	pub big_pic: String,
+	#[serde(rename = "Content", default)]
+	pub content: String,
+	#[serde(rename = "Status", default)]
+	pub status: String,
+	#[serde(rename = "TagList", default)]
+	pub tags: Vec<String>,
+}
 
 pub fn parse_listing(items: &[ComicItem]) -> Vec<Manga> {
 	items
@@ -90,11 +108,51 @@ pub fn parse_search(html: &Document) -> Vec<Manga> {
 			let description = item
 				.select_first(".book-list-info-desc")
 				.and_then(|e| e.text());
+				Some(Manga {
+					key,
+					title,
+					cover,
+					description,
+					..Default::default()
+				})
+			})
+			.collect()
+	}
+
+pub fn parse_search_page(items: &[SearchPageItem]) -> Vec<Manga> {
+	items
+		.iter()
+		.filter_map(|item| {
+			let key = item.url.trim_matches('/').to_string();
+			if key.is_empty() {
+				return None;
+			}
+			let cover = if item.big_pic.is_empty() {
+				item.pic.clone()
+			} else {
+				item.big_pic.clone()
+			};
 			Some(Manga {
 				key,
-				title,
-				cover,
-				description,
+				title: item.title.clone(),
+				cover: if cover.is_empty() { None } else { Some(cover) },
+				description: if item.content.is_empty() {
+					None
+				} else {
+					Some(item.content.clone())
+				},
+				tags: if item.tags.is_empty() {
+					None
+				} else {
+					Some(item.tags.clone())
+				},
+				status: if item.status.contains("完结") {
+					MangaStatus::Completed
+				} else if item.status.contains("连载") {
+					MangaStatus::Ongoing
+				} else {
+					MangaStatus::Unknown
+				},
 				..Default::default()
 			})
 		})
