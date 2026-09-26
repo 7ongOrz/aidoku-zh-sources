@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Do not generate a source list if any source fails to build.
+set -e
+shopt -s globstar
+
 for src in ./src/as/*; do
   if grep -qxF "${src#./}" .deprecated-sources; then
     rm -f "$src/build/package.aix"
