@@ -116,65 +116,80 @@ impl Source for WnacgSource {
 		needs_details: bool,
 		needs_chapters: bool,
 	) -> Result<Manga> {
-		if needs_details {
+		if needs_details || needs_chapters {
 			let url = format!("{}/photos-index-aid-{}.html", WWW_URL, manga.key);
 			let html = Request::get(&url)?.header("User-Agent", UA).html()?;
 
-			let cover = html
-				.select_first("#bodywrap>div>.uwthumb>img")
-				.and_then(|e| e.attr("src"))
-				.unwrap_or_default()
-				.replace("//", "");
-			manga.cover = Some(format!("https://{}", cover));
-			manga.title = html
-				.select_first("#bodywrap>h2")
-				.and_then(|e| e.text())
-				.unwrap_or_default();
+			if needs_details {
+				let cover = html
+					.select_first("#bodywrap>div>.uwthumb>img")
+					.and_then(|e| e.attr("src"))
+					.unwrap_or_default()
+					.replace("//", "");
+				manga.cover = Some(format!("https://{}", cover));
+				manga.title = html
+					.select_first("#bodywrap>h2")
+					.and_then(|e| e.text())
+					.unwrap_or_default();
 
-			let categories_text = html
-				.select_first("#bodywrap>div>.uwconn>label:nth-child(1)")
-				.and_then(|e| e.text())
-				.unwrap_or_default()
-				.replace("分類：", "");
-			let categories: Vec<String> = categories_text
-				.split("／")
-				.flat_map(|a| a.split("&"))
-				.map(|a| a.trim().to_string())
-				.collect();
+				let categories_text = html
+					.select_first("#bodywrap>div>.uwconn>label:nth-child(1)")
+					.and_then(|e| e.text())
+					.unwrap_or_default()
+					.replace("分類：", "");
+				let categories: Vec<String> = categories_text
+					.split("／")
+					.flat_map(|a| a.split("&"))
+					.map(|a| a.trim().to_string())
+					.collect();
 
-			let mut tags = categories;
-			if let Some(tag_elements) = html.select("#bodywrap>div>.uwconn>.addtags>.tagshow") {
-				for tag in tag_elements {
-					if let Some(t) = tag.text() {
-						tags.push(t.trim().to_string());
+				let mut tags = categories;
+				if let Some(tag_elements) = html.select("#bodywrap>div>.uwconn>.addtags>.tagshow") {
+					for tag in tag_elements {
+						if let Some(t) = tag.text() {
+							tags.push(t.trim().to_string());
+						}
 					}
 				}
+				manga.tags = Some(tags);
+				manga.status = MangaStatus::Unknown;
+				manga.content_rating = ContentRating::NSFW;
+				manga.viewer = Viewer::RightToLeft;
+				manga.url = Some(url.clone());
 			}
-			manga.tags = Some(tags);
-			manga.status = MangaStatus::Unknown;
-			manga.content_rating = ContentRating::NSFW;
-			manga.viewer = Viewer::RightToLeft;
-			manga.url = Some(url);
-		}
 
-		if needs_chapters {
-			manga.chapters = Some(aidoku::alloc::vec![Chapter {
-				key: manga.key.clone(),
-				title: Some(String::from("第 1 话")),
-				chapter_number: Some(1.0),
-				url: Some(format!(
-					"{}/photos-index-aid-{}.html",
-					WWW_URL, manga.key
-				)),
-				..Default::default()
-			}]);
+			if needs_chapters {
+				let mut chapters = Vec::new();
+				if let Some(items) = html.select(".sr_compact a[data-chid]") {
+					for (index, item) in items.enumerate() {
+						chapters.push(Chapter {
+							key: item.attr("data-chid").unwrap_or_default(),
+							title: item.text(),
+							chapter_number: Some((index + 1) as f32),
+							url: item.attr("href").map(|href| format!("{}{}", WWW_URL, href)),
+							..Default::default()
+						});
+					}
+				}
+				if chapters.is_empty() {
+					chapters.push(Chapter {
+						key: manga.key.clone(),
+						title: Some(String::from("第 1 话")),
+						chapter_number: Some(1.0),
+						url: Some(url),
+						..Default::default()
+					});
+				}
+				chapters.reverse();
+				manga.chapters = Some(chapters);
+			}
 		}
 
 		Ok(manga)
 	}
 
-	fn get_page_list(&self, manga: Manga, _chapter: Chapter) -> Result<Vec<Page>> {
-		let url = format!("{}/photos-gallery-aid-{}.html", WWW_URL, manga.key);
+	fn get_page_list(&self, _manga: Manga, chapter: Chapter) -> Result<Vec<Page>> {
+		let url = format!("{}/photos-gallery-aid-{}.html", WWW_URL, chapter.key);
 		let text = Request::get(&url)?.header("User-Agent", UA).string()?;
 		let pages: Vec<Page> = text
 			.split("\\\"")
