@@ -256,9 +256,9 @@
     {
       "id": "zh.wnacg",
       "name": "绅士漫画",
-      "version": 6,
-      "iconURL": "icons/zh.wnacg-v6.png",
-      "downloadURL": "sources/zh.wnacg-v6.aix",
+      "version": 7,
+      "iconURL": "icons/zh.wnacg-v7.png",
+      "downloadURL": "sources/zh.wnacg-v7.aix",
       "languages": [
         "zh"
       ],
